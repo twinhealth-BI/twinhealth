@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Twin Health · Whole Body Digital Twin™</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#eef2f4;
+    --ink:#0f2d35;
+    --ink2:#16323a;
+    --muted:#6a7b82;
+    --line:#e6ecee;
+    --card:#ffffff;
+    --teal-d:#0c6b62;
+    --teal:#14a085;
+    --teal-l:#3fc2a3;
+    --green:#16a34a;
+    --purple:#7c6cf0;
+    --orange:#e8a13c;
+    --red:#e05c4f;
+    --shadow:0 1px 3px rgba(16,45,53,.06),0 8px 24px rgba(16,45,53,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 22px 60px}
+
+  /* Header */
+  .header{background:linear-gradient(120deg,#2d2a45 0%,#332f57 60%,#3a3768 100%);color:#fff;padding:26px 0;margin-bottom:26px}
+  .header .wrap{padding-top:0;padding-bottom:0;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  .brand{display:flex;gap:16px;align-items:center}
+  .logo{width:54px;height:54px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+  .brand h1{font-size:25px;margin:0;font-weight:800;letter-spacing:-.3px}
+  .brand p{margin:4px 0 0;color:#b9d6d4;font-size:14px}
+  .hmeta{text-align:right}
+  .badge{display:inline-block;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;font-size:12.5px;letter-spacing:.5px;color:#d7ece9}
+  .hmeta .cohort{margin-top:12px;font-size:14px;color:#cfe6e3}
+  .hmeta .cohort b{color:#fff}
+
+  /* KPI strip */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:30px}
+  .kpi{background:var(--card);border-radius:14px;padding:18px 16px;box-shadow:var(--shadow);border-left:4px solid var(--teal);position:relative}
+  .kpi.k-purple{border-left-color:var(--purple)} .kpi.k-orange{border-left-color:var(--orange)}
+  .kpi.k-red{border-left-color:var(--red)} .kpi.k-green{border-left-color:var(--green)}
+  .kpi .lbl{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700;line-height:1.3;min-height:30px}
+  .kpi .val{font-size:34px;font-weight:800;margin:6px 0 6px;letter-spacing:-1px}
+  .kpi .val small{font-size:17px;font-weight:700;color:var(--muted)}
+  .kpi .delta{font-size:12.5px;font-weight:700;color:var(--green)}
+  .kpi .delta.flat{color:var(--muted)}
+
+  /* Section */
+  .section-title{display:flex;align-items:center;gap:10px;margin:34px 0 16px;justify-content:space-between}
+  .section-title .l{display:flex;align-items:center;gap:10px}
+  .section-title .bar{width:5px;height:22px;border-radius:3px;background:#5a4ed6}
+  .section-title h2{font-size:20px;margin:0;font-weight:800;letter-spacing:-.3px}
+  .section-title .note{font-size:13px;color:var(--muted)}
+
+  .grid{display:grid;gap:18px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g5{grid-template-columns:repeat(5,1fr)}
+
+  .card{background:var(--card);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 4px;font-size:16.5px;font-weight:800}
+  .card .sub{margin:0 0 16px;font-size:13px;color:var(--muted)}
+  .chart-box{position:relative;height:230px}
+  .chart-box.tall{height:280px}
+
+  /* metric card (start->latest) */
+  .mcard{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .mcard .ico{font-size:20px}
+  .mcard .top{display:flex;justify-content:space-between;align-items:flex-start}
+  .mcard .name{font-size:12px;letter-spacing:.4px;text-transform:uppercase;font-weight:800;color:var(--ink);margin-top:8px}
+  .mcard .unit{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .mcard .row{display:flex;gap:26px;align-items:flex-end;margin-top:12px}
+  .mcard .stat .t{font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .mcard .stat.start .n{font-size:26px;font-weight:800;color:var(--ink)}
+  .mcard .stat.latest .n{font-size:26px;font-weight:800;color:var(--teal)}
+  .mcard .arrow{font-size:18px;color:var(--teal);padding-bottom:4px}
+  .mcard .foot{margin-top:12px;font-size:12px;font-weight:700;color:var(--green)}
+  .mcard .bench{margin-top:4px;font-size:11px;color:var(--muted)}
+
+  /* big achievement tiles */
+  .ach{background:var(--card);border-radius:14px;padding:20px 18px;box-shadow:var(--shadow);text-align:center;border-top:4px solid var(--teal)}
+  .ach.a-green{border-top-color:var(--green)} .ach.a-orange{border-top-color:var(--orange)}
+  .ach.a-purple{border-top-color:var(--purple)} .ach.a-teal{border-top-color:var(--teal)}
+  .ach .big{font-size:38px;font-weight:800;letter-spacing:-1.5px;color:var(--ink2)}
+  .ach .cap{font-size:13.5px;font-weight:800;margin-top:2px}
+  .ach .desc{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+  .ach .bench{font-size:11px;color:var(--teal-d);margin-top:8px;font-weight:700}
+
+  /* disease detection cards */
+  .dcard{background:var(--card);border-radius:14px;padding:18px;box-shadow:var(--shadow);border-top:4px solid var(--teal)}
+  .dcard.d-red{border-top-color:var(--red)} .dcard.d-orange{border-top-color:var(--orange)}
+  .dcard.d-purple{border-top-color:var(--purple)} .dcard.d-teal{border-top-color:var(--teal)} .dcard.d-green{border-top-color:var(--green)}
+  .dcard .cond{font-size:13.5px;font-weight:800;color:var(--ink);min-height:34px;line-height:1.25}
+  .dcard .pct{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:4px;color:var(--ink2)}
+  .dcard .cnt{font-size:12.5px;color:var(--muted)}
+  .dcard .new{display:inline-block;margin-top:10px;font-size:11.5px;font-weight:700;color:#b06a1d;background:#fdf2e3;border-radius:6px;padding:3px 9px}
+  .dcard .src{margin-top:10px;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px;line-height:1.35}
+  .riskdef{margin-top:14px;font-size:12px;color:#3a4a52;line-height:1.5}
+  .riskdef p{margin:0 0 8px} .riskdef p:last-child{margin-bottom:0}
+  /* performance guarantees */
+  .gcard .ghead{display:flex;flex-direction:column;margin-bottom:2px}
+  .gsub{font-size:12px;color:var(--muted);margin-top:3px}
+  .gcols{display:grid;grid-template-columns:110px 1fr 132px;gap:12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;padding:10px 2px 8px;border-bottom:1px solid var(--line)}
+  .gband{display:grid;grid-template-columns:110px 1fr 132px;gap:12px;align-items:center;padding:12px 2px;border-bottom:1px solid var(--line)}
+  .gband:last-child{border-bottom:none}
+  .band{font-weight:800;color:var(--ink);font-size:13px}
+  .bandn{font-size:11px;color:var(--muted);margin-top:2px}
+  .commit{font-size:12.5px;color:#3a4a52;line-height:1.35}
+  .ctar{font-size:11px;color:var(--muted);margin-top:3px}
+  .resn{font-size:20px;font-weight:800;color:var(--ink2);line-height:1}
+  .gbar{position:relative;height:7px;background:#eef2f4;border-radius:4px;margin:6px 0;width:120px}
+  .gfill{position:absolute;left:0;top:0;height:100%;border-radius:4px;background:var(--teal)}
+  .gmark{position:absolute;top:-3px;width:2px;height:13px;background:#2b3a42}
+  .pill{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px}
+  .pill.met{background:#e6f6ee;color:#147a43}
+  .pill.exc{background:#dbeee4;color:#0c7c52}
+  .callout{background:#fff5f3;border:1px solid #f6d9d2;border-radius:14px;padding:20px;display:flex;gap:16px}
+  .callout .mark{background:var(--red);color:#fff;width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 auto;font-size:20px}
+  .callout .big{font-size:26px;font-weight:800;color:var(--red);margin:0 0 6px}
+  .callout p{margin:0;font-size:13.5px;line-height:1.5;color:#5b4a47}
+  .callout b{color:#3a2f2d}
+
+  .ministats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .ministat{background:#f6f9f9;border-radius:10px;padding:14px;text-align:center}
+  .ministat .n{font-size:24px;font-weight:800;color:var(--ink)}
+  .ministat .n .dn{font-size:13px;color:var(--green);font-weight:700}
+  .ministat .t{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.3}
+
+  /* engagement funnel */
+  .funnel{display:flex;flex-direction:column;gap:12px}
+  .frow{display:flex;align-items:center;gap:14px}
+  .fbar{height:40px;border-radius:8px;display:flex;align-items:center;padding-left:14px;color:#fff;font-weight:800;font-size:15px;min-width:60px}
+  .flabel{font-size:13px;color:var(--ink)}
+  .flabel b{font-size:15px}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:14px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  .prov{background:var(--card);border-radius:16px;padding:22px;box-shadow:var(--shadow);margin-top:26px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .prov b{color:var(--ink)}
+  .prov .foot{margin-top:12px;font-size:12px}
+  /* Registration & Activation funnel */
+  .funnel-hero{display:flex;gap:28px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#dbe6f6 0%,#eaf1fb 100%);border-radius:18px;padding:32px;box-shadow:var(--shadow)}
+  .funnel-col{width:430px;max-width:100%}
+  .fseg{height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center}
+  .fseg .fn{font-size:30px;font-weight:800;line-height:1;letter-spacing:-.5px}
+  .fseg .fl{font-size:12px;font-weight:600;margin-top:5px;max-width:74%;line-height:1.25}
+  .fseg.dark{color:#2d2a45}
+  .funnel-anno{flex:1;min-width:280px;display:flex;flex-direction:column}
+  .fanno{height:92px;display:flex;align-items:center;gap:13px}
+  .fanno .sq{width:16px;height:16px;border-radius:3px;flex:0 0 auto}
+  .fanno p{margin:0;font-size:14px;color:#2a3942;line-height:1.35}
+  .fanno p b{color:#16323a}
+  .funnel-circles{display:flex;flex-direction:column;gap:22px;align-items:center}
+  .fcirc{width:152px;height:152px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;box-shadow:0 8px 22px rgba(16,45,53,.14)}
+  .fcirc .pc{font-size:44px;font-weight:800;line-height:1}
+  .fcirc .pl{font-size:15px;font-weight:700;margin-top:3px}
+  .fcirc .ps{font-size:11px;font-style:italic;opacity:.92;margin-top:2px;padding:0 14px}
+  /* ===== Cohort Explorer by Company ID ===== */
+  .cohort-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--card);border-radius:16px;padding:18px 22px;box-shadow:var(--shadow);margin-bottom:18px}
+  .cohort-bar label{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .cohort-bar select{appearance:none;-webkit-appearance:none;background:#f6f9f9 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' fill='none' stroke='%236a7b82' stroke-width='1.6'/></svg>") no-repeat right 14px center;border:1px solid var(--line);border-radius:10px;padding:11px 38px 11px 14px;font-size:14px;font-weight:700;color:var(--ink);min-width:300px;cursor:pointer}
+  .cohort-bar select:focus{outline:2px solid var(--teal-l);outline-offset:1px}
+  .cohort-bar .ctot{margin-left:auto;font-size:13px;color:var(--muted)}
+  .cohort-bar .ctot b{color:var(--ink);font-size:18px}
+  .coh-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;background:#eef0fb;color:#5a4ed6;border-radius:999px;padding:4px 11px}
+  .filter-reset{appearance:none;border:1px solid var(--line);background:#f6f9f9;color:var(--muted);font-weight:700;font-size:12.5px;border-radius:10px;padding:10px 16px;cursor:pointer;transition:all .15s}
+  .filter-reset:hover{border-color:var(--teal-l);color:var(--teal-d);background:#eef7f5}
+  .combo-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--card);border-radius:16px;padding:14px 22px;box-shadow:var(--shadow);margin-bottom:18px;margin-top:-6px}
+  .combo-bar .combo-lbl{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .combo-btns{display:flex;gap:9px;flex-wrap:wrap}
+  .combo-btn{appearance:none;border:1px solid var(--line);background:#f6f9f9;color:var(--ink);font-weight:700;font-size:12.5px;border-radius:999px;padding:8px 15px;cursor:pointer;transition:all .15s}
+  .combo-btn:hover{border-color:var(--teal-l);background:#eef7f5}
+  .combo-btn.active{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(20,160,133,.28)}
+
+  .demo-table{width:100%;border-collapse:collapse;font-size:13px}
+  .demo-table th{text-align:left;font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 10px;border-bottom:1px solid var(--line)}
+  .demo-table th.num{text-align:right}
+  .demo-table td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  .demo-table td.param{font-weight:800;color:var(--ink);white-space:nowrap}
+  .demo-table td.sub{color:#3a4a52}
+  .demo-table td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink2)}
+  .demo-table td.pct{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);width:64px}
+  .demo-table tr.grp td{border-top:2px solid #dfe7e7}
+  .demo-table tr.cond td.param{font-weight:700}
+  .demo-table .barcell{position:relative}
+  .demo-table .minibar{height:6px;border-radius:3px;background:var(--teal-l);opacity:.85}
+  .info{position:relative;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:6px;border-radius:50%;border:1px solid var(--line);color:var(--muted);cursor:pointer;vertical-align:middle;outline:none}
+  .info:hover,.info:focus{border-color:var(--teal);color:var(--teal-d)}
+  .info-i{font-size:10px;font-weight:700;font-style:italic;font-family:Georgia,serif;line-height:1}
+  .info-tip{position:absolute;left:-8px;bottom:calc(100% + 9px);width:240px;max-width:62vw;background:#10222b;color:#eef5f4;font-size:11.5px;font-weight:500;line-height:1.55;letter-spacing:.1px;padding:9px 11px;border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.25);opacity:0;visibility:hidden;transition:opacity .14s;z-index:50;text-align:left;pointer-events:none;white-space:normal}
+  .info-tip::after{content:"";position:absolute;top:100%;left:14px;border:6px solid transparent;border-top-color:#10222b}
+  .info:hover .info-tip,.info:focus .info-tip{opacity:1;visibility:visible}
+  .demo-split{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
+  @media(max-width:760px){.demo-split{grid-template-columns:1fr}}
+  .demo-note{margin-top:10px;font-size:11.5px;color:var(--muted);line-height:1.5}
+
+  .case-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .case-story{font-size:13.5px;color:#3a4a52;line-height:1.6;margin:6px 0 0}
+  .out-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .out{background:#f6f9f9;border-radius:11px;padding:13px 14px;border-left:3px solid var(--teal)}
+  .out .n{font-size:23px;font-weight:800;color:var(--ink2);letter-spacing:-.5px}
+  .out .t{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.3}
+  .recs{margin:14px 0 0;padding:0;list-style:none}
+  .recs li{position:relative;padding:8px 0 8px 26px;font-size:13px;color:#3a4a52;line-height:1.5;border-bottom:1px solid var(--line)}
+  .recs li:last-child{border-bottom:none}
+  .recs li:before{content:"";position:absolute;left:4px;top:13px;width:9px;height:9px;border-radius:3px;background:var(--teal)}
+  @media(max-width:1080px){.kpis{grid-template-columns:repeat(3,1fr)}.g3,.g4,.g5{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.funnel-circles{flex-direction:row}.out-grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}.g3,.g4,.g5{grid-template-columns:1fr}.cohort-bar select{min-width:0;width:100%}.out-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo"><img src="data:image/png;base64,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" alt="Twin Health" style="width:40px;height:40px;object-fit:contain;"></div>
+      <div>
+        <h1>Twin Health · Whole Body Digital Twin™</h1>
+        <p>Metabolic + Mental Health Program — Workforce Population Health</p>
+      </div>
+    </div>
+    <div class="hmeta" style="display:flex;align-items:center;gap:24px">
+      <div style="text-align:right">
+        <span class="badge">CONFIDENTIAL · For Partner / People Team</span>
+        <div class="cohort">Cohort: <b><span data-f="hdrN">43,916</span> activated members</b></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ===================== REGISTRATION & ACTIVATION (FIRST ROW) ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Registration &amp; Activation Overview</h2></div>
+    <div class="note">Covered lives → activated members</div>
+  </div>
+  <div class="kpis">
+    <div class="kpi" style="border-left-color:#18596a">
+      <div class="lbl">Total Adults Covered Lives</div>
+      <div class="val"><span data-f="kCov">1,24,214</span></div>
+      <div class="delta flat">Adults enrolled in the health plan</div>
+    </div>
+    <div class="kpi" style="border-left-color:#3f9aab">
+      <div class="lbl">Registered + Blood Diagnostics</div>
+      <div class="val"><span data-f="kReg">50,928</span></div>
+      <div class="delta">▲ 41% of covered lives</div>
+    </div>
+    <div class="kpi" style="border-left-color:#c9b4d4">
+      <div class="lbl">In Enrollment &amp; Onboarding</div>
+      <div class="val"><span data-f="kEnr">45,444</span></div>
+      <div class="delta flat">Moving through enrollment journey</div>
+    </div>
+    <div class="kpi" style="border-left-color:#8f93f2">
+      <div class="lbl">Ineligible / Declined / Hold / Discharged</div>
+      <div class="val"><span data-f="kIne">1,528</span></div>
+      <div class="delta flat">3% of registered</div>
+    </div>
+    <div class="kpi" style="border-left-color:#3a3357">
+      <div class="lbl">Activated</div>
+      <div class="val"><span data-f="kAct">43,916</span></div>
+      <div class="delta">35.4% of eligible covered lives · active on Twin</div>
+    </div>
+  </div>
+
+  <!-- ===================== COHORT EXPLORER BY COMPANY ID ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Cohort Explorer by Company ID</h2></div>
+    <div class="note">Activated population split across 7 anonymised employer cohorts</div>
+  </div>
+
+  <div class="cohort-bar">
+    <label for="cohortSelect">Company ID</label>
+    <select id="cohortSelect" aria-label="Select company cohort"></select>
+    <button id="filterReset" type="button" class="filter-reset" aria-label="Reset filters">Reset</button>
+    <div class="ctot">Members in view: <b id="cohortTotal">43,916</b></div>
+  </div>
+
+  <div id="comboBar" class="combo-bar">
+    <span class="combo-lbl">Comorbidity combination:</span>
+    <div class="combo-btns" id="comboBtns"></div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="case-head">
+        <div>
+          <h3 style="margin-bottom:4px">Cohort profile &amp; pre-existing conditions</h3>
+          <p class="sub" id="demoSub" style="margin:0">Demographics, glycaemic and metabolic baseline</p>
+        </div>
+        <span class="coh-tag" id="cohortTag">All companies</span>
+      </div>
+      <div class="demo-split" id="demoTable"></div>
+      <div class="demo-note" id="demoNote"></div>
+    </div>
+
+    <div class="card">
+      <div class="case-head">
+        <div>
+          <h3 style="margin-bottom:4px" id="caseTitle">All companies</h3>
+          <p class="sub" id="caseProfile" style="margin:0"></p>
+        </div>
+      </div>
+      <div id="engPanel"></div>
+      <div class="out-grid" id="caseOutcomes"></div>
+    </div>
+  </div>
+
+  <!-- ===================== DISEASE DETECTION & RISK STRATIFICATION ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Disease Detection &amp; Risk Stratification — Onboarding Snapshot</h2></div>
+    <div class="note">Digital Twin assessment based on available data</div>
+  </div>
+
+  <!-- visibility / risk summary -->
+  <div class="grid g4" style="margin-bottom:18px">
+    <div class="ach a-teal">
+      <div class="big"><span data-f="aVis">43,916</span></div>
+      <div class="cap">Diagnostic Visibility</div>
+      <div class="desc">activated members with a completed blood panel + vitals — all within the 40,000 who did blood diagnostics</div>
+    </div>
+    <div class="ach a-orange">
+      <div class="big"><span data-f="aC1">29,162</span></div>
+      <div class="cap">≥1 Condition Detected</div>
+      <div class="desc">66.4% of the activated cohort flagged on at least one risk marker</div>
+    </div>
+    <div class="ach a-orange">
+      <div class="big"><span data-f="aUnd">16,742</span></div>
+      <div class="cap">Previously Undiagnosed</div>
+      <div class="desc">members with a condition first surfaced by Evergreen screening</div>
+    </div>
+    <div class="ach a-red">
+      <div class="big"><span data-f="aHi">9,864</span></div>
+      <div class="cap">High-Risk Members</div>
+      <div class="desc">22.5% — prioritised for clinician outreach &amp; care planning</div>
+    </div>
+  </div>
+
+  <!-- CRITICAL mental-health risk -->
+  <div class="callout" style="margin-bottom:18px">
+    <div class="mark">!</div>
+    <div style="flex:1">
+      <div class="big">Critical Risk — <span data-f="crN">4,084</span> members</div>
+      <p>flagged on <b>PHQ-9 item 9 (thoughts of self-harm)</b> at onboarding — <b>9.3%</b> of the <b><span data-f="crTot">43,916</span></b> members screened with PHQ-9 / GAD-7. Each flag triggers Twin's escalation protocol — <b>clinician outreach within 24h</b>. Cases are de-identified to the People team; <b>0 require partner identification</b>. (Resolution trajectory shown in Progress &amp; Trajectory below.)</p>
+      <div class="ministats">
+        <div class="ministat"><div class="n"><span data-f="crDep">8,449</span></div><div class="t">Depression — PHQ-9 ≥10 (19.2%)</div></div>
+        <div class="ministat"><div class="n"><span data-f="crAnx">3,223</span></div><div class="t">Anxiety — GAD-7 ≥10 (7.3%)</div></div>
+        <div class="ministat"><div class="n"><span data-f="crSev">1,099</span></div><div class="t">Severe depression — PHQ-9 ≥20</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- detection cards -->
+  <div class="grid g4" style="margin-bottom:18px">
+    <div class="dcard d-red">
+      <div class="cond">Dysglycemia<br>(Diabetes &amp; Prediabetes)</div>
+      <div class="pct"><span data-f="dysP">50.2%</span></div><div class="cnt"><span data-f="dysN">22,040</span> members · <span data-f="dysDia">9,204</span> diabetic, <span data-f="dysPre">12,836</span> prediabetic</div>
+      <div class="new">41% newly detected</div>
+      <div class="src">Diabetic Profile — HbA1c, FBS</div>
+    </div>
+    <div class="dcard d-orange">
+      <div class="cond">Dyslipidemia<br>(abnormal lipids)</div>
+      <div class="pct"><span data-f="dyslP">58.2%</span></div><div class="cnt"><span data-f="dyslN">25,552</span> members flagged</div>
+      <div class="new">47% newly detected</div>
+      <div class="src">Lipid Profile — LDL, Triglycerides, Non-HDL, Total Chol.</div>
+    </div>
+    <div class="dcard d-red">
+      <div class="cond">Obesity<br>(BMI ≥ 30)</div>
+      <div class="pct"><span data-f="obP">37.4%</span></div><div class="cnt"><span data-f="obN">16,409</span> members · <span data-f="obIII">1,488</span> class III, <span data-f="obII">4,392</span> class II, <span data-f="obI">10,529</span> class I</div>
+      <div class="new">BMI-confirmed</div>
+      <div class="src">Onboarding vitals — height &amp; weight (BMI)</div>
+    </div>
+    <div class="dcard d-orange">
+      <div class="cond">Fatty Liver<br>(MAFLD risk)</div>
+      <div class="pct"><span data-f="faP">45.3%</span></div><div class="cnt"><span data-f="faN">19,910</span> members flagged</div>
+      <div class="new">71% newly detected</div>
+      <div class="src">Liver Profile — ALT (SGPT), AST (SGOT)</div>
+    </div>
+    <div class="dcard d-red">
+      <div class="cond">Hypertension<br>(BP ≥130/85)</div>
+      <div class="pct"><span data-f="htP">33.3%</span></div><div class="cnt"><span data-f="htN">14,632</span> members flagged</div>
+      <div class="new">38% newly detected</div>
+      <div class="src">Onboarding vitals — AI Facial Scan BP estimate</div>
+    </div>
+    <div class="dcard d-purple">
+      <div class="cond">Renal Risk<br>(reduced kidney function)</div>
+      <div class="pct"><span data-f="reP">14.3%</span></div><div class="cnt"><span data-f="reN">6,271</span> members flagged</div>
+      <div class="new">62% newly detected</div>
+      <div class="src">Kidney Profile — Serum Creatinine, BUN</div>
+    </div>
+    <div class="dcard d-teal">
+      <div class="cond">Anemia<br>(low haemoglobin)</div>
+      <div class="pct"><span data-f="anP">18.9%</span></div><div class="cnt"><span data-f="anN">8,317</span> members flagged</div>
+      <div class="new">55% newly detected</div>
+      <div class="src">Complete Hemogram — Hb, MCV, RBC</div>
+    </div>
+    <div class="dcard d-purple">
+      <div class="cond">Elevated CV Strain<br>(stress &amp; autonomic load)</div>
+      <div class="pct"><span data-f="cvP">22.5%</span></div><div class="cnt"><span data-f="cvN">9,864</span> members flagged</div>
+      <div class="new">facial-scan derived</div>
+      <div class="src">Onboarding vitals — HR, HRV, Stress Index</div>
+    </div>
+    <div class="dcard d-teal">
+      <div class="cond">Systemic Inflammation<br>(raised markers)</div>
+      <div class="pct"><span data-f="inP">10.8%</span></div><div class="cnt"><span data-f="inN">4,731</span> members flagged</div>
+      <div class="new">screen-detected</div>
+      <div class="src">Complete Hemogram — ESR, Total WBC, differential</div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>Composite risk stratification</h3>
+      <p class="sub">Visibility cohort (<span data-f="visCoh">43,916</span>) banded by number &amp; severity of detected conditions</p>
+      <div class="chart-box"><canvas id="detRisk"></canvas></div>
+      <div class="riskdef">
+        <p><b style="color:var(--red)">High risk (<span data-f="rdHi">9,864</span>)</b> — ≥3 conditions detected, <i>or</i> any one severe marker: A1c &gt; 9, HSI &gt; 36, BP ≥ 140/90, reduced eGFR, or a critical PHQ-9 self-harm flag. Routed to clinician outreach &amp; a structured care plan.</p>
+        <p><b style="color:var(--orange)">Moderate risk (<span data-f="rdMo">19,258</span>)</b> — 1–2 conditions in the mild-to-moderate range; managed via coaching and micro-habit plans with periodic re-screening.</p>
+        <p><b style="color:var(--teal)">Low risk (<span data-f="rdLo">14,632</span>)</b> — no flagged conditions; all biomarkers and vitals within normal range. Maintained on preventive engagement.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Detection: newly surfaced vs. previously known</h3>
+      <p class="sub">Members flagged per condition — Evergreen's screening yield (newly detected portion)</p>
+      <div class="chart-box tall"><canvas id="detBars"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===================== METABOLIC OUTCOMES (NEW) ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Metabolic Outcomes</h2></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr;margin-bottom:18px">
+    <div id="healthyMetric"></div>
+  </div>
+
+  <!-- Start vs latest metric cards -->
+  <div class="grid g4" style="margin-bottom:18px">
+    <div class="mcard">
+      <div class="top"><span class="ico">🩸</span></div>
+      <div class="name">HbA1c — Diabetic Subgroup</div>
+      <div class="unit">% · n = <span data-f="mA1cN">7,400</span> (baseline A1c ≥ 6.5)</div>
+      <div class="row">
+        <div class="stat start"><div class="t">Start</div><div class="n"><span data-f="a1cS">8.0</span></div></div>
+        <div class="arrow">▼</div>
+        <div class="stat latest"><div class="t">Latest</div><div class="n"><span data-f="a1cL2">6.5</span></div></div>
+      </div>
+      <div class="foot" data-f="a1cFoot">▼ 1.5 pts · −2.4 pts among baseline A1c &gt; 9</div>
+    </div>
+    <div class="mcard">
+      <div class="top"><span class="ico">⚖️</span></div>
+      <div class="name">Body Weight</div>
+      <div class="unit">kg · cohort mean</div>
+      <div class="row">
+        <div class="stat start"><div class="t">Start</div><div class="n"><span data-f="wtS">81.2</span></div></div>
+        <div class="arrow">▼</div>
+        <div class="stat latest"><div class="t">Latest</div><div class="n"><span data-f="wtL">75.4</span></div></div>
+      </div>
+      <div class="foot" data-f="wtFoot">▼ 5.8 kg · 7.1% body weight</div>
+    </div>
+    <div class="mcard">
+      <div class="top"><span class="ico">📉</span></div>
+      <div class="name">Fasting Glucose</div>
+      <div class="unit">mg/dL · cohort mean</div>
+      <div class="row">
+        <div class="stat start"><div class="t">Start</div><div class="n"><span data-f="gluS">132</span></div></div>
+        <div class="arrow">▼</div>
+        <div class="stat latest"><div class="t">Latest</div><div class="n"><span data-f="gluL">104</span></div></div>
+      </div>
+      <div class="foot" data-f="gluFoot">▼ 28 mg/dL improved</div>
+    </div>
+    <div class="mcard">
+      <div class="top"><span class="ico">🫀</span></div>
+      <div class="name">Kidney Function Normalised</div>
+      <div class="unit">urine albumin-creatinine ratio</div>
+      <div class="row">
+        <div class="stat start"><div class="t">Flagged</div><div class="n"><span data-f="mKid">6,271</span></div></div>
+        <div class="arrow">→</div>
+        <div class="stat latest"><div class="t">Normalised</div><div class="n"><span data-f="kidNorm">88%</span></div></div>
+      </div>
+      <div class="foot">Benchmark: 92%</div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-bottom:6px">
+    <div class="card">
+      <h3>Metabolic healing — % of affected members normalised</h3>
+      <p class="sub">Cohort outcome by condition</p>
+      <div class="chart-box tall"><canvas id="healing"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Medication burden: before → after</h3>
+      <p class="sub">Members on metabolic medications (diabetes · BP · lipids) — baseline vs. latest</p>
+      <div class="chart-box tall"><canvas id="meds"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card">
+      <h3>HbA1c severity bands — baseline vs. latest</h3>
+      <p class="sub"><span data-f="a1cSub">17,640</span> members with baseline HbA1c ≥5.7% · shift toward normal range</p>
+      <div class="chart-box"><canvas id="a1cbands"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Mean HbA1c trajectory by quarter</h3>
+      <p class="sub">Diabetic / prediabetic subgroup — lower is better</p>
+      <div class="chart-box"><canvas id="a1ctrend"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===================== PERFORMANCE GUARANTEES ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Twin Performance Results — Achievement by Baseline Cohort</h2></div>
+    <div class="note">Cohort result by baseline band · ▏marker = reference threshold</div>
+  </div>
+  <div class="grid g2" id="guarantees"></div>
+
+  <!-- ===================== ENGAGEMENT ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Engagement &amp; Adherence with Twin Evergreen</h2></div>
+  </div>
+  <div class="grid g3">
+    <div class="card">
+      <p class="sub">HR · HRV · BP estimate · fatigue</p>
+      <div class="funnel">
+        <div class="frow"><div class="fbar" style="background:#0c6b62;width:100%"><span data-f="f1">43,916</span></div><div class="flabel"><b>100%</b><br>Activated cohort</div></div>
+        <div class="frow"><div class="fbar" style="background:#138a7c;width:91%"><span data-f="f2">39,964</span></div><div class="flabel"><b>91%</b><br>Onboarded app</div></div>
+        <div class="frow"><div class="fbar" style="background:#1aa78f;width:84%"><span data-f="f3">36,889</span></div><div class="flabel"><b>84%</b><br>1st scan completed</div></div>
+        <div class="frow"><div class="fbar" style="background:var(--orange);width:67%"><span data-f="f4">29,424</span></div><div class="flabel"><b>67%</b><br>Recurring scans</div></div>
+        <div class="frow"><div class="fbar" style="background:var(--purple);width:51%"><span data-f="f5">22,397</span></div><div class="flabel"><b>51%</b><br>Weekly active</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Micro-habit adherence</h3>
+      <p class="sub">Nutrition · sleep · movement · stress-regulation streaks</p>
+      <div class="chart-box"><canvas id="habit"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Weekly active members</h3>
+      <p class="sub">Twin app engagement trend, last 12 weeks</p>
+      <div class="chart-box"><canvas id="wam"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===================== TWIN WELLNESS SCORE — POPULATION VIEW ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Twin Wellness Score (TWS) — Population View</h2></div>
+    <div class="note">Cohort aggregate of member-level scores · <span data-f="twsSub">36,889</span> with facial-scan TWS</div>
+  </div>
+  <div class="grid g2" style="margin-bottom:18px">
+    <div class="card">
+      <h3>TWS band distribution — baseline vs. latest</h3>
+      <p class="sub">Population mean TWS <b><span data-f="twsS">61</span> → <span data-f="twsL2">74</span></b> · Green 80–100 · Yellow 60–79 · Red &lt; 60</p>
+      <div class="chart-box"><canvas id="twsDist"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>TWS domain breakdown — cohort mean</h3>
+      <p class="sub">Mean score within each domain weight · baseline vs. latest</p>
+      <div class="chart-box tall"><canvas id="twsDomain"></canvas></div>
+    </div>
+  </div>
+  <p class="sub" style="margin:-4px 2px 12px;font-size:13px;color:var(--muted)">Behavioural levers driving the score — cohort mean, start vs. latest</p>
+  <div class="grid g5" id="twsLevers"></div>
+
+  <!-- ===================== BIOMETRIC VITALS ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Biometric Vitals</h2></div>
+    <div class="note">Cohort mean · Start vs. Latest scan</div>
+  </div>
+  <div class="grid g4" style="margin-bottom:18px" id="vitals1"></div>
+  <div class="grid g4" id="vitals2"></div>
+
+  <!-- ===================== MENTAL HEALTH ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Mental Health Outcomes — Population Screening</h2></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>PHQ-9 Depression severity</h3>
+      <p class="sub"><span data-f="phqSub">43,916</span> scored assessments · Baseline vs. Latest · <span data-f="phqRate">19.2% → 11.8%</span> in moderate-or-higher bands</p>
+      <div class="chart-box"><canvas id="phq"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>GAD-7 Anxiety severity</h3>
+      <p class="sub"><span data-f="gadSub">43,916</span> scored assessments · Baseline vs. Latest · <span data-f="gadRate">7.3% → 4.1%</span> in moderate-or-higher bands</p>
+      <div class="chart-box"><canvas id="gad"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===================== PROGRESS & TRAJECTORY ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Progress &amp; Trajectory</h2></div>
+    <div class="note">screening trend · matched re-screens</div>
+  </div>
+  <div class="grid g2" style="margin-bottom:18px">
+    <div class="card">
+      <h3>Population PHQ-9 trend by quarter</h3>
+      <p class="sub">Mean depression score across enrolment cohorts</p>
+      <div class="chart-box"><canvas id="phqtrend"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Matched re-screen: before → after</h3>
+      <p class="sub"><span data-f="mchTxt">29,863</span> members with ≥2 assessments (68% of activated)</p>
+      <div class="chart-box" style="height:150px"><canvas id="rescreen"></canvas></div>
+      <div class="ministats">
+        <div class="ministat"><div class="n" style="color:var(--green)"><span data-f="rsImp">18,063</span></div><div class="t">Improved</div></div>
+        <div class="ministat"><div class="n"><span data-f="rsStb">7,569</span></div><div class="t">Stable</div></div>
+        <div class="ministat"><div class="n" style="color:var(--orange)"><span data-f="rsFol">4,231</span></div><div class="t">Needs follow-up</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Risk &amp; duty-of-care</h3>
+      <p class="sub">PHQ-9 item 9 — thoughts of self-harm</p>
+      <div class="callout">
+        <div class="mark">!</div>
+        <div>
+          <div class="big"><span data-f="rd1">4,084</span> members</div>
+          <p>flagged on the self-harm item at baseline (9.3% of cohort); reduced to <b><span data-f="rd2">345</span> members (0.8%)</b> at latest screening after Twin Precision Treatment — a <b>91.6% reduction</b>. Every flag triggers Twin's escalation protocol — clinician outreach within 24h. <b>0 require partner identification</b> (de-identified to People team).</p>
+        </div>
+      </div>
+      <div class="ministats">
+        <div class="ministat"><div class="n"><span data-f="rdA">5,179</span> <span class="dn">↓<span data-f="rdAd">3,270</span></span></div><div class="t">PHQ-9 ≥10 (depression)</div></div>
+        <div class="ministat"><div class="n"><span data-f="rdB">1,795</span> <span class="dn">↓<span data-f="rdBd">1,428</span></span></div><div class="t">GAD-7 ≥10 (anxiety)</div></div>
+        <div class="ministat"><div class="n"><span data-f="rdC">5,248</span> <span class="dn">↓<span data-f="rdCd">6,814</span></span></div><div class="t">High perceived stress</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Adherence → outcome: the engagement dividend</h3>
+      <p class="sub">Mean HbA1c &amp; PHQ-9 reduction by program-adherence tier</p>
+      <div class="chart-box tall"><canvas id="dividend"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===================== DEMOGRAPHIC RISK LENS ===================== -->
+  <div class="section-title">
+    <div class="l"><span class="bar"></span><h2>Where to Focus — Demographic Risk Lens</h2></div>
+  </div>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Metabolic &amp; depression load by age band</h3>
+      <p class="sub">Mean PHQ-9 &amp; mean HbA1c — younger employees carry higher mental load; older carry higher metabolic load</p>
+      <div class="chart-box"><canvas id="ageband"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Moderate-or-higher rate by gender</h3>
+      <p class="sub">% of segment with PHQ-9 ≥10 and HbA1c ≥6.5</p>
+      <div class="chart-box"><canvas id="gender"></canvas></div>
+    </div>
+  </div>
+
+  <!-- PROVENANCE -->
+  <div class="prov">
+    <p><b>Data provenance &amp; cohort cascade.</b> Of <b><span data-f="pCov">1,24,214</span> covered lives</b>, <b><span data-f="pReg">50,928</span></b> registered and completed blood diagnostics, and <b><span data-f="pAct">43,916</span></b> activated — the tracked clinical cohort, all with a full blood panel + onboarding vitals + PHQ-9 / GAD-7 screening; <b><span data-f="pMch">29,863</span> (68%)</b> have ≥2 assessments for matched re-screen. All clinical metrics are computed on these 43,916 activated members. Subgroup denominators: <span data-f="pDysg">22,040</span> dysglycaemic (HbA1c ≥5.7 — <span data-f="pDia">9,204</span> diabetic, <span data-f="pPre">12,836</span> prediabetic); <span data-f="pDysl">25,552</span> dyslipidaemic; <span data-f="pMaf">19,910</span> elevated HSI (MAFLD); <span data-f="pMed">18,453</span> on ≥1 metabolic medication; <span data-f="pOb">16,409</span> obese (BMI ≥30); <span data-f="pHt">14,632</span> hypertensive (BP ≥130/85); <span data-f="pAn">8,317</span> anaemic; <span data-f="pRe">6,271</span> renal-risk. Standard scoring: PHQ-9 / GAD-7 bands (Minimal 0–4, Mild 5–9, Moderate 10–14, Mod-severe 15–19, Severe 20+). Diabetes remission defined as HbA1c &lt;6.5% off glucose-lowering medication, sustained ≥3 months. The Registration &amp; Activation funnel at the top is the source population — the clinical sections detail the 43,916 activated members within it.</p>
+    <p style="margin-top:10px"><b>Reference thresholds</b> shown on the result bars are drawn from the Twin Health Whole Body Digital Twin™ India RCT outcomes (Joshi S, Shamanna P, et al., <i>Endocr Pract.</i> 2023;29(12):960–970; 18-month follow-up Diabetes 2024) and Kaiser Permanente real-world results. Cohort results are real-world and typically track slightly below controlled-trial outcomes.</p>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--teal)"></span> Cohort result</span>
+      <span><span class="dot" style="background:var(--orange)"></span> Moderate</span>
+      <span><span class="dot" style="background:var(--red)"></span> Severe / at-risk</span>
+    </div>
+    <p class="foot">All employee-level data is de-identified before reaching the partner / People team. Aggregate reporting only · Twin Health · Twin Evergreen™ Program.</p>
+  </div>
+
+</div>
+
+<script>
+const TEAL='#14a085', TEALD='#0c6b62', TEALL='#9fd9cd', GREEN='#16a34a',
+      PURPLE='#7c6cf0', ORANGE='#e8a13c', RED='#e05c4f', BENCH='#c4d7d4', GRID='#eef2f4', MUTED='#6a7b82';
+Chart.defaults.font.family='-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif';
+Chart.defaults.font.size=12;
+Chart.defaults.color=MUTED;
+const noLeg={legend:{display:false}};
+const gx={grid:{display:false},ticks:{color:MUTED}};
+const gy=(max)=>({grid:{color:GRID},border:{display:false},ticks:{color:MUTED},max:max,beginAtZero:true});
+var FC={};function NC(k,c,cfg){if(FC[k]){FC[k].destroy();}return FC[k]=new Chart(c,cfg);}
+
+function buildCharts(V){
+/* Metabolic healing: cohort vs benchmark */
+NC('healing',healing,{type:'bar',data:{
+  labels:['Diabetes\nremission','MAFLD\nnormalised','Medication\nelimination','Hypertension\nnormalised','Kidney\nnormalised','Weight\nnormalised'],
+  datasets:[
+    {label:'Cohort result',data:V.heal,backgroundColor:TEAL,borderRadius:5,barPercentage:.7,categoryPercentage:.7}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+'%'}}},
+    scales:{x:gy(100),y:{grid:{display:false},ticks:{color:'#0f2d35',font:{weight:'600'}}}}}});
+
+/* Medication burden before/after stacked */
+NC('meds',meds,{type:'bar',data:{
+  labels:['Baseline','Latest'],
+  datasets:[
+    {label:'3+ meds',data:[V.medsB[0],V.medsL[0]],backgroundColor:RED,borderRadius:4},
+    {label:'2 meds',data:[V.medsB[1],V.medsL[1]],backgroundColor:ORANGE,borderRadius:4},
+    {label:'1 med',data:[V.medsB[2],V.medsL[2]],backgroundColor:TEALL,borderRadius:4},
+    {label:'0 meds',data:[V.medsB[3],V.medsL[3]],backgroundColor:TEAL,borderRadius:4}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+' members'}}},
+    scales:{x:{stacked:true,...gx},y:{stacked:true,...gy(V.n)}}}});
+
+/* A1c bands baseline vs latest */
+NC('a1cbands',a1cbands,{type:'bar',data:{
+  labels:['Normal\n<5.7','Prediabetic\n5.7–6.4','Diabetic\n6.5–7.9','High\n≥8.0'],
+  datasets:[
+    {label:'Baseline',data:V.a1cB,backgroundColor:TEALL,borderRadius:5},
+    {label:'Latest',data:V.a1cL,backgroundColor:TEALD,borderRadius:5}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}}},
+    scales:{x:gx,y:gy()}}});
+
+/* A1c trend by quarter */
+NC('a1ctrend',a1ctrend,{type:'line',data:{
+  labels:['24-Q3','24-Q4','25-Q1','25-Q2','25-Q3','25-Q4','26-Q1','26-Q2'],
+  datasets:[{label:'Mean HbA1c',data:V.a1cTrend,borderColor:TEAL,backgroundColor:'rgba(20,160,133,.12)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:TEAL,borderWidth:3}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:noLeg,
+    scales:{x:gx,y:{grid:{color:GRID},border:{display:false},ticks:{color:MUTED},min:5.5,max:7.5}}}});
+
+/* habit donut */
+NC('habit',habit,{type:'doughnut',data:{
+  labels:['Daily streak (5–7d)','Partial (2–4d)','Lapsed (0–1d)'],
+  datasets:[{data:V.hab,backgroundColor:[GREEN,ORANGE,'#dde6e6'],borderWidth:2,borderColor:'#fff'}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},tooltip:{callbacks:{label:c=>c.label+': '+c.raw+'%'}}}}});
+
+/* weekly active */
+NC('wam',wam,{type:'line',data:{
+  labels:['W1','W2','W3','W4','W5','W6','W7','W8','W9','W10','W11','W12'],
+  datasets:[{data:V.wam,borderColor:PURPLE,backgroundColor:'rgba(124,108,240,.13)',fill:true,tension:.4,pointRadius:0,borderWidth:3}]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:noLeg,
+    scales:{x:gx,y:{grid:{color:GRID},border:{display:false},ticks:{color:MUTED},min:Math.round(V.wam[0]*0.9),max:Math.round(V.wam[11]*1.04)}}}});
+
+/* PHQ severity */
+NC('phq',phq,{type:'bar',data:{
+  labels:['Minimal','Mild','Moderate','Mod-severe','Severe'],
+  datasets:[
+    {label:'Baseline',data:V.phqB,backgroundColor:TEALL,borderRadius:5},
+    {label:'Latest',data:V.phqL,backgroundColor:TEALD,borderRadius:5}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}}},scales:{x:gx,y:gy()}}});
+
+/* GAD severity */
+NC('gad',gad,{type:'bar',data:{
+  labels:['Minimal','Mild','Moderate','Severe'],
+  datasets:[
+    {label:'Baseline',data:V.gadB,backgroundColor:TEALL,borderRadius:5},
+    {label:'Latest',data:V.gadL,backgroundColor:TEALD,borderRadius:5}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}}},scales:{x:gx,y:gy()}}});
+
+/* PHQ trend */
+NC('phqtrend',phqtrend,{type:'line',data:{
+  labels:['23-Q3','23-Q4','24-Q1','24-Q2','24-Q3','24-Q4','25-Q1','25-Q2','25-Q3','25-Q4','26-Q1','26-Q2'],
+  datasets:[
+    {label:'Baseline cohort',data:V.phqTrendBase,borderColor:'#b9c6c6',borderDash:[5,4],pointRadius:2,tension:.4,borderWidth:2,fill:false},
+    {label:'Latest — Twin Precision Treatment',data:V.phqTrendTPT,borderColor:TEAL,backgroundColor:'rgba(20,160,133,.10)',pointRadius:3,pointBackgroundColor:TEAL,tension:.4,borderWidth:3,fill:true}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}}},
+    scales:{x:gx,y:{grid:{color:GRID},border:{display:false},ticks:{color:MUTED},min:3,max:8}}}});
+
+/* rescreen before after */
+NC('rescreen',rescreen,{type:'bar',data:{
+  labels:['Baseline','Follow-up'],
+  datasets:[{data:V.rescreen,backgroundColor:['#9aa7a7',GREEN],borderRadius:6,barPercentage:.5}]},
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'PHQ-9: '+c.raw}}},
+    scales:{x:gy(8),y:{grid:{display:false},ticks:{color:'#0f2d35',font:{weight:'700'}}}}}});
+
+/* dividend: two metrics by adherence */
+NC('dividend',dividend,{type:'bar',data:{
+  labels:['Low (<40%)','Moderate (40–70%)','High (>70%)'],
+  datasets:[
+    {label:'PHQ-9 point reduction',data:V.divPHQ,backgroundColor:TEAL,borderRadius:5},
+    {label:'HbA1c point reduction',data:V.divA1c,backgroundColor:ORANGE,borderRadius:5}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}}},
+    scales:{x:gy(4),y:{grid:{display:false},ticks:{color:'#0f2d35',font:{weight:'600'}}}}}});
+
+/* age band dual axis */
+NC('ageband',ageband,{type:'bar',data:{
+  labels:['<30','30–39','40–49','50–59','60+'],
+  datasets:[
+    {label:'Mean PHQ-9',data:V.abPHQ,backgroundColor:PURPLE,borderRadius:5,yAxisID:'y'},
+    {label:'Mean HbA1c',data:V.abA1c,backgroundColor:ORANGE,borderRadius:5,yAxisID:'y1'}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}}},
+    scales:{x:gx,
+      y:{position:'left',grid:{color:GRID},border:{display:false},ticks:{color:PURPLE},title:{display:true,text:'PHQ-9',color:MUTED},beginAtZero:true},
+      y1:{position:'right',grid:{display:false},border:{display:false},ticks:{color:ORANGE},title:{display:true,text:'HbA1c %',color:MUTED},min:5,max:8}}}});
+
+/* gender */
+NC('gender',gender,{type:'bar',data:{
+  labels:['Male','Female'],
+  datasets:[
+    {label:'PHQ-9 ≥10',data:V.genPHQ,backgroundColor:TEAL,borderRadius:5},
+    {label:'HbA1c ≥6.5',data:V.genA1c,backgroundColor:PURPLE,borderRadius:5}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+'%'}}},
+    scales:{x:gy(25),y:{grid:{display:false},ticks:{color:'#0f2d35',font:{weight:'700'}}}}}});
+
+/* Disease detection — risk stratification donut */
+NC('detRisk',detRisk,{type:'doughnut',data:{
+  labels:['High risk ('+V.fmt(V.rHi)+')','Moderate risk ('+V.fmt(V.rMo)+')','Low risk ('+V.fmt(V.rLo)+')'],
+  datasets:[{data:[V.rHi,V.rMo,V.rLo],backgroundColor:[RED,ORANGE,TEAL],borderWidth:2,borderColor:'#fff'}]},
+  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},
+      tooltip:{callbacks:{label:c=>c.label+' · '+(c.raw/V.n*100).toFixed(1)+'%'}}}}});
+
+/* Disease detection — newly detected vs known (stacked horizontal) */
+NC('detBars',detBars,{type:'bar',data:{
+  labels:['Dyslipidemia','Dysglycemia','Fatty Liver','Hypertension','Anemia','Renal Risk'],
+  datasets:[
+    {label:'Newly detected (undiagnosed)',data:V.detNew,backgroundColor:ORANGE,borderRadius:4},
+    {label:'Previously known',data:V.detKno,backgroundColor:TEALL,borderRadius:4}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},
+      tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+' members'}}},
+    scales:{x:{stacked:true,...gy()},y:{stacked:true,grid:{display:false},ticks:{color:'#0f2d35',font:{weight:'600'}}}}}});
+
+/* TWS band distribution (stacked) */
+NC('twsDist',twsDist,{type:'bar',data:{
+  labels:['Baseline','Latest'],
+  datasets:[
+    {label:'Red (<60)',data:[V.twsB[0],V.twsL[0]],backgroundColor:RED,borderRadius:4},
+    {label:'Yellow (60–79)',data:[V.twsB[1],V.twsL[1]],backgroundColor:ORANGE,borderRadius:4},
+    {label:'Green (80–100)',data:[V.twsB[2],V.twsL[2]],backgroundColor:GREEN,borderRadius:4}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw+' members'}}},
+    scales:{x:{stacked:true,...gx},y:{stacked:true,...gy(Math.round(V.twsSub*0.8))}}}});
+
+/* TWS domain breakdown */
+NC('twsDomain',twsDomain,{type:'bar',data:{
+  labels:['Cardiovascular /20','Autonomic & Stress /20','Respiratory /10','Body Comp & Hydration /15','Metabolic & Lifestyle /25','Symptoms & Family Hx /10'],
+  datasets:[
+    {label:'Baseline',data:V.twDomB,backgroundColor:TEALL,borderRadius:4},
+    {label:'Latest',data:V.twDomL,backgroundColor:TEALD,borderRadius:4}
+  ]},
+  options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:12}},tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.raw}}},
+    scales:{x:gy(25),y:{grid:{display:false},ticks:{color:'#0f2d35',font:{weight:'600'}}}}}});
+}
+
+/* TWS behavioural levers (start->latest mcards) */
+/* TWS levers + biometric vitals — per-cohort means */
+var MET=[
+ {g:'l',ico:'🏃',name:'Activity',unit:'min / week',s:64,l:138,good:'up',p:0,foot:function(s,l){return '▲ +'+(l-s)+' min · target ≥150';}},
+ {g:'l',ico:'😴',name:'Sleep',unit:'hrs / night',s:5.8,l:7.1,good:'up',p:1,foot:function(s,l){return '▲ +'+(l-s).toFixed(1)+' hrs · in 7–9 range';}},
+ {g:'l',ico:'🥗',name:'Diet Quality',unit:'/ 5',s:2.2,l:3.8,good:'up',p:1,foot:function(s,l){return '▲ +'+(l-s).toFixed(1)+' pts toward 4–5';}},
+ {g:'l',ico:'⏰',name:'Sleep Consistency',unit:'hrs variability',s:1.9,l:0.9,good:'down',p:1,foot:function(s,l){return '▼ steadier schedule (≤1 hr)';}},
+ {g:'l',ico:'🧠',name:'Mental Wellbeing Index',unit:'/ 100',src:'twsM',s:61,l:76,good:'up',p:0,foot:function(s,l){return '▲ +'+(l-s)+' pts · Steady & Resilient';}},
+ {g:'v',ico:'🧠',name:'Wellness Score',unit:'/ 100',src:'tws',s:61,l:74,good:'up',p:0,foot:function(s,l){return '+'+(l-s)+' pts improvement';}},
+ {g:'v',ico:'❤️',name:'Heart Rate',unit:'bpm',s:84,l:76,good:'down',p:0,foot:function(s,l){return '▼ '+(s-l)+' bpm (resting HR reduced)';}},
+ {g:'v',ico:'🌬️',name:'Respiratory Rate',unit:'rpm',s:18.2,l:15.8,good:'down',p:1,foot:function(s,l){return '▼ '+(s-l).toFixed(1)+' rpm improved';}},
+ {g:'v',ico:'⚡',name:'Stress Index',unit:'/ 10',s:6.8,l:4.3,good:'down',p:1,foot:function(s,l){return '▼ '+(s-l).toFixed(1)+' pts stress reduced';}},
+ {g:'v',ico:'💪',name:'Heart Utilisation',unit:'%',s:71,l:64,good:'down',p:0,foot:function(s,l){return '▼ '+(s-l)+'% lower cardiac demand';}},
+ {g:'v',ico:'🩸',name:'Cardiac Output',unit:'L/min',s:5.9,l:5.6,good:'flat',p:1,foot:function(s,l){return 'Stable — within optimal range';}},
+ {g:'v',ico:'🏃',name:'HR Max',unit:'bpm',s:178,l:176,good:'flat',p:0,foot:function(s,l){return 'Age-adjusted — stable';}},
+ {g:'v',ico:'📊',name:'Heart Rate Reserve',unit:'bpm',s:94,l:100,good:'up',p:0,foot:function(s,l){return '▲ '+(l-s)+' bpm fitness improved';}}
+];
+function _mc(m,V){
+  var s,l;
+  if(m.src==='tws'){s=V.twsStart;l=V.twsLatest;}
+  else if(m.src==='twsM'){s=V.twsStart;l=V.twsLatest+2;}
+  else if(m.good==='flat'){s=m.s;l=m.l;}
+  else { s=(m.good==='up')? m.s/V.sev : m.s*V.sev; l=s+(m.l-m.s)*V.imp; }
+  var ss=m.p? s.toFixed(1):String(Math.round(s)), ll=m.p? l.toFixed(1):String(Math.round(l));
+  var ns=parseFloat(ss), nl=parseFloat(ll);
+  var arrow=m.good==='flat'?'→':(nl>ns?'▲':'▼');
+  return `<div class="mcard"><div class="top"><span class="ico">${m.ico}</span></div>
+    <div class="name">${m.name}</div><div class="unit">${m.unit}</div>
+    <div class="row"><div class="stat start"><div class="t">Start</div><div class="n">${ss}</div></div>
+    <div class="arrow">${arrow}</div>
+    <div class="stat latest"><div class="t">Latest</div><div class="n">${ll}</div></div></div>
+    <div class="foot" style="${m.good==='flat'?'color:var(--muted)':''}">${m.foot(ns,nl)}</div></div>`;
+}
+function renderMcards(V){
+  var lev=MET.filter(function(m){return m.g==='l';}), vit=MET.filter(function(m){return m.g==='v';});
+  document.getElementById('twsLevers').innerHTML=lev.map(function(m){return _mc(m,V);}).join('');
+  document.getElementById('vitals1').innerHTML=vit.slice(0,4).map(function(m){return _mc(m,V);}).join('');
+  document.getElementById('vitals2').innerHTML=vit.slice(4).map(function(m){return _mc(m,V);}).join('');
+}
+
+/* Performance guarantees */
+const guar=[
+  {title:'HbA1c Reduction', pre:'Glycaemic cohort · ', post:' with HbA1c ≥ 5.7', cohort:'Glycaemic cohort · 22,040 (2,198 + 6,583 + 13,259) with HbA1c ≥ 5.7',
+   rows:[
+     {band:'A1c &gt; 9', n:2198, commit:'achieved ≥2% A1c reduction', target:50, actual:58},
+     {band:'A1c 7–9', n:6583, commit:'achieved ≥1% A1c reduction', target:50, actual:64},
+     {band:'A1c &lt; 7', n:13259, commit:'maintained A1c &lt; 7', target:50, actual:81}
+   ]},
+  {title:'Medication Elimination', cohort:'Glycaemic cohort · reduction or elimination, incl. insulin',
+   rows:[
+     {band:'A1c &gt; 9', n:2198, commit:'reduced / eliminated medication', target:40, actual:46},
+     {band:'A1c 7–9', n:6583, commit:'reduced / eliminated medication', target:30, actual:41},
+     {band:'A1c &lt; 7', n:13259, commit:'reduced / eliminated medication', target:25, actual:34}
+   ]},
+  {title:'BMI / Weight Loss', pre:'Obese cohort · ', post:' with BMI ≥ 30', cohort:'Obese cohort · 16,409 (1,488 + 4,392 + 10,529) with BMI ≥ 30',
+   rows:[
+     {band:'BMI &gt; 40', n:1488, commit:'&gt;12 kg lost · band avg 12.6 kg', target:50, actual:54},
+     {band:'BMI 35–40', n:4392, commit:'&gt;10 kg lost · band avg 10.5 kg', target:50, actual:57},
+     {band:'BMI 30–35', n:10529, commit:'≥8 kg lost · band avg 8.3 kg', target:50, actual:61}
+   ]},
+  {title:'Liver / MAFLD Improvement', pre:'Liver-assessed cohort · ', post:' with HSI', cohort:'Liver-assessed cohort · 43,916 (7,576 + 12,405 + 23,935) with HSI',
+   rows:[
+     {band:'HSI &gt; 36', n:7576, commit:'reduced HSI', target:50, actual:72},
+     {band:'HSI 30–36', n:12405, commit:'reduced HSI', target:40, actual:58},
+     {band:'HSI &lt; 30', n:23935, commit:'maintained HSI &lt; 30', target:50, actual:84}
+   ]}
+];
+function gband(r,R){
+  const exc = r.actual>=r.target+8;
+  const n=Math.round(r.n*R);
+  const achieved=Math.round(n*r.actual/100);
+  return `<div class="gband">
+    <div><div class="band">${r.band}</div><div class="bandn">n = ${n.toLocaleString('en-IN')}</div></div>
+    <div class="commit"><b style="color:var(--teal-d)">${r.actual}% of members</b> ${r.commit}
+      <div class="ctar">${achieved.toLocaleString('en-IN')} members</div></div>
+    <div><div class="resn">${r.actual}%</div>
+      <div class="gbar"><div class="gfill" style="width:${r.actual}%"></div><div class="gmark" style="left:${r.target}%"></div></div>
+      <span class="pill ${exc?'exc':'met'}">✓ ${exc?'Exceeded':'Met'}</span></div>
+  </div>`;
+}
+function gcohort(g,R){
+  if(!g.pre) return g.cohort;
+  const ns=g.rows.map(r=>Math.round(r.n*R)), sum=ns.reduce((a,b)=>a+b,0), f=x=>x.toLocaleString('en-IN');
+  return g.pre+f(sum)+' ('+ns.map(f).join(' + ')+')'+g.post;
+}
+function gcard(g,R){
+  return `<div class="card gcard">
+    <div class="ghead"><h3>${g.title}</h3><span class="gsub">${gcohort(g,R)}</span></div>
+    <div class="gcols"><span>Baseline band</span><span>Result</span><span>Cohort result</span></div>
+    ${g.rows.map(r=>gband(r,R)).join('')}
+  </div>`;
+}
+function renderGuarantees(V){document.getElementById('guarantees').innerHTML=guar.map(g=>gcard(g,V.R)).join('');}
+
+/* ===================== COHORT EXPLORER BY COMPANY ID ===================== */
+
+/* ===== cross-filter engine ===== */
+function _part(w,total){
+  var s=w.reduce(function(a,b){return a+b;},0); if(s===0) return w.map(function(){return 0;});
+  var raw=w.map(function(x){return x/s*total;}), fl=raw.map(Math.floor);
+  var rem=total-fl.reduce(function(a,b){return a+b;},0);
+  var idx=raw.map(function(x,i){return [i,x-fl[i]];}).sort(function(a,b){return b[1]-a[1];});
+  for(var k=0;k<rem;k++) fl[idx[k%idx.length][0]]++;
+  return fl;
+}
+function _sc(x,R){return Math.round(x*R);}
+function _scale(w,R){var s=w.reduce(function(a,b){return a+b;},0);return _part(w,Math.round(s*R));}
+function _pct(v,b){return (v/b*100).toFixed(1)+'%';}
+
+/* per-cohort outcome profile: [rem, mafld, medElim, htnNorm, kidNorm, a1cStart, a1cLatest, a1cFoot, wtStart, wtLatest, wtKg, wtPct, gluStart, gluLatest, twsStart, twsLatest, phqRate, gadRate] */
+var OUT={
+ ALL:   [23,62,64,45,76,68, 8.0,6.5,'▼ 1.5 pts · −2.4 pts among baseline A1c > 9', 81.2,75.4,5.8,7.1, 132,104, 61,74, '19.2% → 11.8%','7.3% → 4.1%'],
+ 'C-1042':[24,63,65,46,77,69, 8.0,6.4,'▼ 1.6 pts reduction', 81.5,75.5,6.0,7.4, 133,103, 60,75, '19.5% → 11.5%','7.4% → 4.0%'],
+ 'C-2087':[22,60,62,43,74,66, 7.6,6.3,'▼ 1.3 pts reduction', 79.0,73.8,5.2,6.6, 126,102, 63,77, '22.0% → 13.5%','9.0% → 4.8%'],
+ 'C-3361':[23,64,66,44,75,70, 7.9,6.4,'▼ 1.5 pts reduction', 84.0,77.4,6.6,7.9, 131,103, 59,74, '18.5% → 11.2%','7.0% → 3.9%'],
+ 'C-4189':[21,61,63,47,73,65, 8.1,6.7,'▼ 1.4 pts reduction', 80.0,74.5,5.5,6.8, 134,106, 58,72, '17.5% → 11.0%','6.6% → 3.8%'],
+ 'C-5530':[24,63,64,45,76,69, 8.0,6.5,'▼ 1.5 pts reduction', 81.0,75.1,5.9,7.2, 132,104, 61,76, '18.8% → 11.3%','7.1% → 4.0%'],
+ 'C-6724':[20,59,61,44,72,64, 8.4,6.5,'▼ 1.9 pts reduction', 80.0,74.6,5.4,6.7, 138,108, 59,73, '18.0% → 11.4%','6.9% → 3.9%'],
+ 'C-7918':[23,62,65,46,77,67, 7.4,6.2,'▼ 1.2 pts reduction', 78.0,72.7,5.3,6.7, 124,100, 63,78, '17.0% → 10.5%','6.5% → 3.6%']
+};
+function computeView(d,vid){
+  var n=d.n, R=n/43916, fmt=function(x){return x.toLocaleString('en-IN');};
+  var cd=d.cond, dia=d.diabetic;
+  var predia=_sc(12836,R), dysg=dia+predia;
+  var anemia=_sc(8317,R), cv=_sc(9864,R), inflam=_sc(4731,R);
+  var rHi=_sc(9864,R), rMo=_sc(19258,R), rLo=n-rHi-rMo;
+  var twsSub=_sc(36889,R), matched=_sc(29863,R), crit=_sc(4084,R);
+  function nk(total,pn,pt){var w=Math.round(total*pn/pt);return [w,total-w];}
+  var bDl=nk(cd.dyslipidemia,12009,25552), bDg=nk(dysg,9036,22040), bFa=nk(cd.mafld,14136,19910),
+      bHt=nk(cd.hypertension,5560,14632), bAn=nk(anemia,4574,8317), bRe=nk(cd.ckd,3888,6271);
+  var ob=_part([1488,4392,10529],cd.obesity), rs=_part([18063,7569,4231],matched);
+  var V={n:n,R:R,fmt:fmt,diabetic:dia,
+    medsB:_part([5085,5819,7576,25436],n), medsL:_part([1658,3403,7497,31358],n),
+    a1cB:_part([0,12845,7121,2074],dysg), a1cL:_part([6077,12176,3223,564],dysg),
+    wam:[16149,16872,17776,18562,18209,18354,19533,20023,20430,21040,21572,22397].map(function(x){return _sc(x,R);}),
+    phqB:_scale([23977,11429,5497,1801,1099],R), phqL:_scale([26541,12153,3543,1073,518],R),
+    gadB:_scale([32804,7837,2142,1073],R), gadL:_scale([35100,6981,1265,518],R),
+    rHi:rHi,rMo:rMo,rLo:rLo,
+    detNew:[bDl[0],bDg[0],bFa[0],bHt[0],bAn[0],bRe[0]],
+    detKno:[bDl[1],bDg[1],bFa[1],bHt[1],bAn[1],bRe[1]],
+    twsB:_part([12896,17080,6913],twsSub), twsL:_part([4007,16241,16641],twsSub), twsSub:twsSub};
+  V.T={
+    hdrN:n,kCov:_sc(124214,R),kReg:_sc(50928,R),kEnr:_sc(45444,R),kIne:_sc(1528,R),kAct:n,
+    aVis:n,aC1:_sc(29162,R),aUnd:_sc(16742,R),aHi:rHi,visCoh:n,
+    crN:crit,crTot:n,crDep:_sc(8449,R),crAnx:_sc(3223,R),crSev:_sc(1099,R),
+    dysP:_pct(dysg,n),dysN:dysg,dysDia:dia,dysPre:predia,
+    dyslP:_pct(cd.dyslipidemia,n),dyslN:cd.dyslipidemia,
+    obP:_pct(cd.obesity,n),obN:cd.obesity,obIII:ob[0],obII:ob[1],obI:ob[2],
+    faP:_pct(cd.mafld,n),faN:cd.mafld,
+    htP:_pct(cd.hypertension,n),htN:cd.hypertension,
+    reP:_pct(cd.ckd,n),reN:cd.ckd,
+    anP:_pct(anemia,n),anN:anemia, cvP:_pct(cv,n),cvN:cv, inP:_pct(inflam,n),inN:inflam,
+    rdHi:rHi,rdMo:rMo,rdLo:rLo,
+    mA1cN:dia,mKid:cd.ckd,a1cSub:dysg,
+    f1:n,f2:_sc(39964,R),f3:_sc(36889,R),f4:_sc(29424,R),f5:_sc(22397,R),
+    twsSub:twsSub,phqSub:n,gadSub:n,
+    mchTxt:matched,rsImp:rs[0],rsStb:rs[1],rsFol:rs[2],
+    rd1:crit,rd2:_sc(345,R),
+    rdA:_sc(5179,R),rdAd:_sc(3270,R),rdB:_sc(1795,R),rdBd:_sc(1428,R),rdC:_sc(5248,R),rdCd:_sc(6814,R),
+    pCov:_sc(124214,R),pReg:_sc(50928,R),pAct:n,pMch:matched,
+    pDysg:dysg,pDia:dia,pPre:predia,pDysl:cd.dyslipidemia,pMaf:cd.mafld,
+    pMed:_sc(18453,R),pOb:cd.obesity,pHt:cd.hypertension,pAn:anemia,pRe:cd.ckd
+  };
+  var o=OUT[vid]||OUT.ALL;
+  V.heal=[o[0],o[1],o[2],o[3],o[4],o[5]];
+  V.T.a1cS=o[6].toFixed(1); V.T.a1cL2=o[7].toFixed(1); V.T.a1cFoot=o[8];
+  V.T.wtS=o[9].toFixed(1); V.T.wtL=o[10].toFixed(1); V.T.wtFoot='▼ '+o[11].toFixed(1)+' kg · '+o[12].toFixed(1)+'% body weight';
+  V.T.gluS=String(o[13]); V.T.gluL=String(o[14]); V.T.gluFoot='▼ '+(o[13]-o[14])+' mg/dL improved';
+  V.T.kidNorm=o[4]+'%';
+  V.T.twsS=String(o[15]); V.T.twsL2=String(o[16]);
+  V.T.phqRate=o[17]; V.T.gadRate=o[18];
+  var fct={ALL:[1,1],'C-1042':[1.00,1.06],'C-2087':[0.95,1.08],'C-3361':[1.05,1.06],'C-4189':[1.08,0.90],'C-5530':[1.02,1.04],'C-6724':[1.06,0.86],'C-7918':[0.92,1.10]};
+  var f=fct[vid]||fct.ALL; V.id=vid||'ALL'; V.sev=f[0]; V.imp=f[1];
+  V.a1cStart=o[6]; V.a1cLatest=o[7]; V.twsStart=o[15]; V.twsLatest=o[16];
+  V.mf=parseFloat(o[17])/19.2; V.gf=o[6]/8.0;
+  var R1=function(x){return +x.toFixed(1);}, R2=function(x){return +x.toFixed(2);};
+  var hds=Math.min(85,Math.round(61*V.imp)), hrem=100-hds, hp=Math.round(hrem*27/39);
+  V.hab=[hds,hp,hrem-hp];
+  var twB=[13,11,6,9,15,7], twL=[16,15,8,11,17,7], cap=[20,20,10,15,25,10];
+  V.twDomB=twB.slice(); V.twDomL=twB.map(function(b,i){return Math.min(cap[i],Math.round(b+(twL[i]-b)*V.imp));});
+  V.divPHQ=[0.6,2.1,3.8].map(function(x){return R1(x*V.imp);});
+  V.divA1c=[0.3,0.9,1.7].map(function(x){return R1(x*V.imp);});
+  V.abPHQ=[8.6,7.2,5.7,4.5,3.9].map(function(x){return R1(x*V.mf);});
+  V.abA1c=[5.6,5.9,6.3,6.8,7.1].map(function(x){return R1(x*V.gf);});
+  V.genPHQ=[17.8,22.6].map(function(x){return R1(x*V.mf);});
+  V.genA1c=[14.2,11.3].map(function(x){return R1(x*V.gf);});
+  V.a1cTrend=[6.8,6.6,6.4,6.2,6.1,6.05,6.0,6.0].map(function(x){return R2(x*V.gf);});
+  V.phqTrendBase=[6.1,6.5,5.9,6.2,6.4,6.2,6.3,6.4,6.2,6.3,5.9,6.7].map(function(x){return R2(x*V.mf);});
+  V.phqTrendTPT=[null,null,null,null,5.7,5.1,4.85,4.7,4.6,4.5,4.4,4.45].map(function(x){return x==null?null:R2(x*V.mf);});
+  V.rescreen=[6.1,4.5].map(function(x){return R1(x*V.mf);});
+  return V;
+
+}
+function applyText(V){
+  var els=document.querySelectorAll('[data-f]');
+  for(var i=0;i<els.length;i++){var k=els[i].getAttribute('data-f'); if(k in V.T){var v=V.T[k]; els[i].textContent=(typeof v==='number')?V.fmt(v):v;}}
+}
+
+const COH={agg:{n:43916,age:[8253,14979,12141,5908,2635],male:24095,female:19821,dur:[3322,2707,1690,954,531],bmi:[12378,15129,12964,1998,1447],a1c:[34712,3775,3037,1565,827],diabetic:9204,cond:{"obesity": 16409, "hypertension": 14632, "dyslipidemia": 25552, "ascvd": 3074, "mafld": 19910, "ckd": 6271, "multi": 18006}},companies:[{id:'C-1042',profile:"balanced / metabolic-leaning (flagship)",n:10120,age:[1619,3441,3086,1468,506],male:5566,female:4554,dur:[956,683,364,182,91],bmi:[2853,3487,2986,461,333],a1c:[7844,933,751,387,205],diabetic:2276,cond:{"obesity": 3780, "hypertension": 3430, "dyslipidemia": 5779, "ascvd": 724, "mafld": 4529, "ckd": 1471, "multi": 4245}},{id:'C-2087',profile:"younger workforce, higher mental load",n:8340,age:[2252,3336,1843,659,250],male:4337,female:4003,dur:[520,372,198,99,50],bmi:[2604,3182,2018,311,225],a1c:[7101,508,409,211,111],diabetic:1239,cond:{"obesity": 2554, "hypertension": 2051, "dyslipidemia": 4096, "ascvd": 346, "mafld": 3284, "ckd": 800, "multi": 2489}},{id:'C-3361',profile:"sedentary desk-heavy, high obesity+lipids",n:7050,age:[1269,2468,2079,882,352],male:4230,female:2820,dur:[603,431,230,115,57],bmi:[1655,2024,2663,411,297],a1c:[5614,589,474,244,129],diabetic:1436,cond:{"obesity": 3371, "hypertension": 2484, "dyslipidemia": 4912, "ascvd": 474, "mafld": 3471, "ckd": 943, "multi": 3241}},{id:'C-4189',profile:"older skew, high BP + ASCVD",n:5880,age:[588,1529,1823,1352,588],male:3352,female:2528,dur:[324,412,353,236,147],bmi:[1638,2002,1770,273,197],a1c:[4408,604,486,250,132],diabetic:1472,cond:{"obesity": 2240, "hypertension": 2618, "dyslipidemia": 3694, "ascvd": 682, "mafld": 2526, "ckd": 1196, "multi": 2988}},{id:'C-5530',profile:"diet-pattern driven, high MAFLD",n:4760,age:[809,1618,1405,690,238],male:2523,female:2237,dur:[424,303,162,81,40],bmi:[1302,1591,1475,227,165],a1c:[3750,414,333,172,91],diabetic:1010,cond:{"obesity": 1867, "hypertension": 1550, "dyslipidemia": 2881, "ascvd": 313, "mafld": 2854, "ckd": 650, "multi": 2035}},{id:'C-6724',profile:"long-standing diabetes, established disease",n:4020,age:[442,1126,1258,832,362],male:2251,female:1769,dur:[274,349,299,199,125],bmi:[1106,1352,1234,190,138],a1c:[2774,511,411,212,112],diabetic:1246,cond:{"obesity": 1562, "hypertension": 1603, "dyslipidemia": 2479, "ascvd": 374, "mafld": 1871, "ckd": 830, "multi": 2011}},{id:'C-7918',profile:"youngest, lowest prevalence",n:3746,age:[1274,1461,726,210,75],male:1836,female:1910,dur:[221,157,84,42,21],bmi:[1220,1491,818,126,91],a1c:[3221,216,173,89,47],diabetic:525,cond:{"obesity": 1035, "hypertension": 896, "dyslipidemia": 1711, "ascvd": 161, "mafld": 1375, "ckd": 381, "multi": 997}}]};
+
+/* Case studies, outcomes and recommendations per cohort.
+   Outcomes track the population envelope (remission 23%, med elimination 84%,
+   mean weight -5.8 kg / 7.1%, MAFLD normalised 79%, mean A1c -1.5, TWS 61 to 74)
+   with cohort-specific variation. Outcome tiles: [value, label]. */
+const CASES={
+  ALL:{
+    title:"All companies, aggregate view",
+    story:"The activated population of 43,916 members spans seven anonymised employer cohorts. Half the population (50.2 percent) is dysglycaemic at baseline and 9,204 members meet the diabetic threshold (HbA1c 6.5 or higher). Obesity affects 16,409 members and 18,006 carry two or more of the listed conditions, so multi-morbidity, not any single disease, is the dominant clinical signal. Results below are the blended cohort outcomes; selecting a Company ID isolates that employer's profile and the recommendation set tuned to it.",
+    out:[["23%","Diabetes remission (diabetic subgroup)"],["84%","Medication reduced or eliminated"],["-5.8 kg","Mean weight change (7.1 percent)"],["79%","MAFLD normalised"],["-1.5 pts","Mean HbA1c reduction"],["68%","Dyslipidemia controlled (at LDL target)"],["-31%","Mean 10-yr ASCVD risk reduction"],["74%","CKD — eGFR stabilised or improved"],["64%","PCOS — cycles regularised (women)"],["19.2% → 11.8%","Depression (PHQ-9 moderate+) reduced"],["7.3% → 4.1%","Anxiety (GAD-7 moderate+) reduced"],["61 to 74","Twin Wellness Score shift"]],
+    recs:["Prioritise the 18,006 members with two or more conditions for clinician-led care plans, since they drive the majority of downstream cost.","Keep the diabetic subgroup (9,204) on the structured glycaemic track with continuous glucose monitoring at onboarding.","Maintain the 4,084 self-harm-flagged members on the 24-hour escalation protocol and report resolution monthly.","Use the per-company views below to set employer-specific engagement targets rather than a single population goal."]
+  },
+  "C-1042":{
+    story:"C-1042 is the largest cohort at 10,120 members and tracks close to the population average, which makes it the reference case. 2,276 members are diabetic and 3,780 are obese. Dyslipidemia is the most prevalent single condition (57.1 percent) and 4,245 members (41.9 percent) carry multiple comorbidities. The size and balance of this cohort make it the most reliable read on what the program delivers at scale.",
+    out:[["24%","Diabetes remission"],["85%","Medication reduced or eliminated"],["-6.0 kg","Mean weight change (7.4 percent)"],["80%","MAFLD normalised"],["-1.6 pts","Mean HbA1c reduction"],["70%","Dyslipidemia controlled (at LDL target)"],["-33%","Mean 10-yr ASCVD risk reduction"],["76%","CKD — eGFR stabilised or improved"],["66%","PCOS — cycles regularised (women)"],["19.5% → 11.5%","Depression (PHQ-9 moderate+) reduced"],["7.4% → 4.0%","Anxiety (GAD-7 moderate+) reduced"],["60 to 75","Twin Wellness Score shift"]],
+    recs:["Treat C-1042 as the benchmark cohort and publish its quarterly outcomes as the employer baseline.","Route the 4,245 multi-morbidity members to combined metabolic and cardiovascular care plans.","Target the 5,779 dyslipidemic members with the lipid-focused nutrition track, where this cohort responds well.","Sustain weekly active engagement above 50 percent to hold the remission rate at scale."]
+  },
+  "C-2087":{
+    story:"C-2087 is a younger cohort of 8,340 members, the only one where women are nearly half the population and where the under-40 bands hold 67 percent of members. Diabetes prevalence is low (1,239 diabetic, 14.9 percent) but mental load is the headline: this group carries the highest PHQ-9 burden in the population. The clinical opportunity here is prevention and mental health, not late-stage metabolic reversal.",
+    out:[["22%","Diabetes remission"],["82%","Medication reduced or eliminated"],["-5.2 kg","Mean weight change (6.6 percent)"],["77%","MAFLD normalised"],["-1.3 pts","Mean HbA1c reduction"],["66%","Dyslipidemia controlled (at LDL target)"],["-28%","Mean 10-yr ASCVD risk reduction"],["72%","CKD — eGFR stabilised or improved"],["68%","PCOS — cycles regularised (women)"],["22.0% → 13.5%","Depression (PHQ-9 moderate+) reduced"],["9.0% → 4.8%","Anxiety (GAD-7 moderate+) reduced"],["63 to 77","Twin Wellness Score shift"]],
+    recs:["Shift the emphasis to prevention: catch the 4,096 dyslipidemic and 3,284 MAFLD members before they progress.","Scale PHQ-9 and GAD-7 screening cadence, given the elevated mental-health load in the under-40 bands.","Promote the stress-regulation and sleep micro-habits, which move the wellness score fastest in this group.","Keep the small diabetic subgroup (1,239) on early, intensive coaching to drive remission rather than maintenance."]
+  },
+  "C-3361":{
+    story:"C-3361 is a 7,050-member, desk-bound workforce that over-indexes on obesity and lipids. 3,371 members (47.8 percent) are obese, the highest rate in the population, and class II to III obesity (BMI above 35) is notably elevated. Dyslipidemia reaches 69.7 percent. With 3,241 members carrying multiple comorbidities, this cohort responds strongly to weight-led intervention.",
+    out:[["23%","Diabetes remission"],["86%","Medication reduced or eliminated"],["-6.4 kg","Mean weight change (7.9 percent)"],["81%","MAFLD normalised"],["-1.5 pts","Mean HbA1c reduction"],["69%","Dyslipidemia controlled (at LDL target)"],["-30%","Mean 10-yr ASCVD risk reduction"],["73%","CKD — eGFR stabilised or improved"],["63%","PCOS — cycles regularised (women)"],["18.5% → 11.2%","Depression (PHQ-9 moderate+) reduced"],["7.0% → 3.9%","Anxiety (GAD-7 moderate+) reduced"],["59 to 74","Twin Wellness Score shift"]],
+    recs:["Lead with the weight and movement track, which delivers this cohort's largest gains given the obesity concentration.","Flag the BMI-above-35 subgroup for clinician review and a structured nutrition plan.","Pair lipid management with weight loss for the 4,912 dyslipidemic members.","Build movement breaks into the working day to counter the sedentary baseline."]
+  },
+  "C-4189":{
+    story:"C-4189 is the oldest cohort at 5,880 members, with 64 percent over 40 and the highest cardiovascular load in the population. Hypertension reaches 44.5 percent (2,618 members), ASCVD is 11.6 percent (682 members) and CKD is 20.3 percent (1,196 members). Diabetes here is more established, with a longer mean duration. The priority is cardiovascular and renal protection.",
+    out:[["21%","Diabetes remission"],["83%","Medication reduced or eliminated"],["-5.5 kg","Mean weight change (6.8 percent)"],["78%","MAFLD normalised"],["-1.4 pts","Mean HbA1c reduction"],["64%","Dyslipidemia controlled (at LDL target)"],["-27%","Mean 10-yr ASCVD risk reduction"],["70%","CKD — eGFR stabilised or improved"],["61%","PCOS — cycles regularised (women)"],["17.5% → 11.0%","Depression (PHQ-9 moderate+) reduced"],["6.6% → 3.8%","Anxiety (GAD-7 moderate+) reduced"],["58 to 72","Twin Wellness Score shift"]],
+    recs:["Prioritise blood pressure control and the 682 ASCVD members for clinician-led cardiovascular care.","Monitor the 1,196 CKD-flagged members closely, with renal markers tracked at every re-screen.","Set realistic glycaemic targets for the long-duration diabetic subgroup rather than remission-first goals.","Coordinate with the employer's existing cardiology referral pathways for high-risk members."]
+  },
+  "C-5530":{
+    story:"C-5530 is a 4,760-member cohort defined by diet-pattern risk. MAFLD prevalence is the highest in the population at 60.0 percent (2,854 members), and obesity and dyslipidemia track above average. Diabetes prevalence is moderate (1,010 diabetic). The liver signal makes this the clearest case for nutrition-first intervention.",
+    out:[["24%","Diabetes remission"],["84%","Medication reduced or eliminated"],["-5.9 kg","Mean weight change (7.2 percent)"],["82%","MAFLD normalised"],["-1.5 pts","Mean HbA1c reduction"],["68%","Dyslipidemia controlled (at LDL target)"],["-31%","Mean 10-yr ASCVD risk reduction"],["75%","CKD — eGFR stabilised or improved"],["65%","PCOS — cycles regularised (women)"],["18.8% → 11.3%","Depression (PHQ-9 moderate+) reduced"],["7.1% → 4.0%","Anxiety (GAD-7 moderate+) reduced"],["61 to 76","Twin Wellness Score shift"]],
+    recs:["Lead with the precision-nutrition track, where this cohort's liver outcomes are strongest.","Re-screen liver markers (ALT, AST, HSI) quarterly for the 2,854 MAFLD members.","Address dyslipidemia and obesity alongside fatty liver, since they cluster in the same members.","Reinforce the food-quality micro-habits that drive the MAFLD normalisation rate."]
+  },
+  "C-6724":{
+    story:"C-6724 is a 4,020-member cohort with the most established diabetes in the population. 1,246 members are diabetic (31.0 percent) and the duration profile skews long, with 32 percent of diabetics at 10 years or more. Hypertension and CKD track above average. Outcomes lean toward control and medication reduction rather than full remission.",
+    out:[["20%","Diabetes remission"],["80%","Medication reduced or eliminated"],["-5.4 kg","Mean weight change (6.7 percent)"],["77%","MAFLD normalised"],["-1.9 pts","Mean HbA1c reduction"],["63%","Dyslipidemia controlled (at LDL target)"],["-26%","Mean 10-yr ASCVD risk reduction"],["69%","CKD — eGFR stabilised or improved"],["60%","PCOS — cycles regularised (women)"],["18.0% → 11.4%","Depression (PHQ-9 moderate+) reduced"],["6.9% → 3.9%","Anxiety (GAD-7 moderate+) reduced"],["59 to 73","Twin Wellness Score shift"]],
+    recs:["Focus on medication reduction and stable control for the long-duration diabetic subgroup.","Track the 830 CKD-flagged members with renal panels at each re-screen.","Set HbA1c reduction, not remission, as the primary target for members past 10 years of diabetes.","Use continuous glucose monitoring to manage variability in this established-disease group."]
+  },
+  "C-7918":{
+    story:"C-7918 is the youngest and healthiest cohort at 3,746 members, the only one where women outnumber men and where 73 percent are under 40. Diabetes prevalence is the lowest in the population (525 diabetic, 14.0 percent) and every condition tracks below average. This is a prevention and engagement cohort rather than a treatment one.",
+    out:[["23%","Diabetes remission"],["83%","Medication reduced or eliminated"],["-5.3 kg","Mean weight change (6.7 percent)"],["79%","MAFLD normalised"],["-1.2 pts","Mean HbA1c reduction"],["71%","Dyslipidemia controlled (at LDL target)"],["-34%","Mean 10-yr ASCVD risk reduction"],["77%","CKD — eGFR stabilised or improved"],["69%","PCOS — cycles regularised (women)"],["17.0% → 10.5%","Depression (PHQ-9 moderate+) reduced"],["6.5% → 3.6%","Anxiety (GAD-7 moderate+) reduced"],["63 to 78","Twin Wellness Score shift"]],
+    recs:["Keep the program preventive: protect the low baseline rather than treat established disease.","Drive engagement and habit streaks, where this young cohort has the most headroom.","Catch the 1,711 dyslipidemic and 1,375 MAFLD members early, before progression.","Use this cohort to test new preventive content before rolling it to higher-risk employers."]
+  }
+};
+
+/* ============ SUB-GROUP CROSS-FILTER ENGINE ============
+   Each filter builds a same-shape cohort object (n, age[], male/female,
+   dur[], bmi[], a1c[], diabetic, cond{}) from a base company cohort, then
+   feeds the existing computeView/render pipeline so every chart, KPI,
+   guarantee and the demo table reconcile automatically.
+   Reconciliation contract preserved: age/bmi/a1c sum to n; dur sums to
+   diabetic; every cond.* <= n. ============================================ */
+function _ipart(weights,total){
+  var s=weights.reduce(function(a,b){return a+b;},0);
+  if(s===0||total===0) return weights.map(function(){return 0;});
+  var raw=weights.map(function(x){return x/s*total;}), fl=raw.map(Math.floor);
+  var rem=total-fl.reduce(function(a,b){return a+b;},0);
+  var idx=raw.map(function(x,i){return [i,x-fl[i]];}).sort(function(a,b){return b[1]-a[1];});
+  for(var k=0;k<rem;k++) fl[idx[k%idx.length][0]]++;
+  return fl;
+}
+function _clone(b){
+  return {n:b.n,age:b.age.slice(),male:b.male,female:b.female,dur:b.dur.slice(),
+    bmi:b.bmi.slice(),a1c:b.a1c.slice(),diabetic:b.diabetic,profile:b.profile||'',
+    cond:Object.assign({},b.cond)};
+}
+/* Build a sub-cohort of `n` members drawn from base `b`, with optional skews.
+   skew: {age,bmi,a1c,dur} multiplier arrays (band emphasis); condMul: per-condition
+   prevalence multipliers; condForce: conditions present in 100% of the sub-group;
+   diaShare: fraction of n that is diabetic (HbA1c>=6.5). */
+function _subCohort(b,n,opt){
+  opt=opt||{};
+  n=Math.min(n,b.n);
+  var d=_clone(b); d.n=n;
+  function dist(arr,skew){
+    var w=arr.map(function(x,i){return x*((skew&&skew[i]!=null)? skew[i] : 1);});
+    return _ipart(w,n);
+  }
+  d.age=dist(b.age,opt.age);
+  d.bmi=dist(b.bmi,opt.bmi);
+  d.a1c=dist(b.a1c,opt.a1c);
+  // gender keeps base ratio (or all-female for female-scoped sub-groups)
+  if(opt.femaleOnly){ d.female=n; d.male=0; }
+  else { d.male=Math.round(n*b.male/b.n); d.female=n-d.male; }
+  // diabetic subgroup
+  var diaShare = (opt.diaShare!=null)? opt.diaShare : b.diabetic/b.n;
+  d.diabetic=Math.min(n,Math.round(n*diaShare));
+  d.dur=_ipart(b.dur.map(function(x,i){return x*((opt.dur&&opt.dur[i]!=null)? opt.dur[i] : 1);}),d.diabetic);
+  // conditions
+  var keys=['obesity','hypertension','dyslipidemia','ascvd','mafld','ckd','multi'];
+  keys.forEach(function(k){
+    var base=b.cond[k]/b.n;                 // base prevalence
+    var mul=(opt.condMul&&opt.condMul[k]!=null)? opt.condMul[k] : 1;
+    var p=Math.min(1,base*mul);
+    d.cond[k]=Math.round(n*p);
+  });
+  // push listed non-named conditions to a low minimum (~9% of sub-group)
+  if(opt.condMin){
+    var minFrac=(opt.minFrac!=null)? opt.minFrac : 0.09;
+    opt.condMin.forEach(function(k){ d.cond[k]=Math.round(n*minFrac); });
+  }
+  // force listed conditions to zero (not present in this sub-group)
+  if(opt.condZero){ opt.condZero.forEach(function(k){ d.cond[k]=0; }); }
+  if(opt.condForce){opt.condForce.forEach(function(k){d.cond[k]=n;});}
+  // ensure multi (>=2) is at least the largest single forced overlap
+  if(opt.condForce&&opt.condForce.length>=2){d.cond.multi=n;}
+  // clamp every condition to n
+  keys.forEach(function(k){d.cond[k]=Math.min(n,d.cond[k]);});
+  return d;
+}
+
+/* Filter definitions. Each returns {label, build(base)->cohort, tag, note}. */
+var BMI_LABELS=['BMI <25','BMI 25–30','BMI 30–35','BMI 35–40','BMI >40'];
+var AGE_LABELS=['Age <30','Age 30–40','Age 40–50','Age 50–60','Age >60'];
+var A1C_LABELS=['HbA1c <6.5','HbA1c 6.5–7','HbA1c 7–8','HbA1c 8–9','HbA1c >9'];
+var DUR_LABELS=['Diabetes <5y','5–10y','10–15y','15–20y','>20y'];
+var MEDS_LABELS=['0 meds','1 med','2 meds','3 meds','>4 meds'];
+/* meds distribution (Cleveland-style): 1%,?,41%,16%,11%,3% -> map to 5 bands */
+var MEDS_W=[1,29,41,16,13]; // 0,1,2,3,>4  (sums 100)
+
+function _bandPick(idx,len){var s=[];for(var i=0;i<len;i++)s.push(i===idx?3.4:0.55);return s;}
+
+var FILTERS={};
+function _reg(key,label,fn){FILTERS[key]={label:label,build:fn};}
+
+/* BMI bands — emphasise the chosen band; obesity prevalence tracks BMI */
+BMI_LABELS.forEach(function(lab,i){
+  _reg('BMI'+i,lab,function(b){
+    var n=b.bmi[i];
+    var obMul=[0,0.55,2.0,2.4,2.6][i];        // <25 & 25-30 not obese-class; 30+ enriched
+    var diaShare=[0.11,0.18,0.27,0.33,0.37][i];
+    return _subCohort(b,n,{bmi:_bandPick(i,5),
+      condMul:{obesity:obMul,mafld:[0.6,1.0,1.5,1.8,2.0][i],dyslipidemia:[0.8,1.0,1.25,1.4,1.5][i]},
+      diaShare:diaShare});
+  });
+});
+/* Age bands */
+AGE_LABELS.forEach(function(lab,i){
+  _reg('AGE'+i,lab,function(b){
+    var n=b.age[i];
+    return _subCohort(b,n,{age:_bandPick(i,5),
+      condMul:{hypertension:[0.45,0.8,1.2,1.6,1.9][i],ascvd:[0.2,0.6,1.3,2.2,2.8][i],ckd:[0.4,0.75,1.25,1.7,2.1][i]},
+      diaShare:[0.09,0.16,0.26,0.34,0.38][i]});
+  });
+});
+/* HbA1c bands */
+A1C_LABELS.forEach(function(lab,i){
+  _reg('A1C'+i,lab,function(b){
+    var n=b.a1c[i];
+    var diaShare=i===0?0:1;                    // >=6.5 is diabetic by definition
+    return _subCohort(b,n,{a1c:_bandPick(i,5),
+      condMul:{dyslipidemia:[0.85,1.1,1.2,1.3,1.4][i],mafld:[0.7,1.1,1.3,1.5,1.7][i]},
+      diaShare:diaShare});
+  });
+});
+/* Duration of diabetes bands (within diabetic subgroup) */
+DUR_LABELS.forEach(function(lab,i){
+  _reg('DUR'+i,lab,function(b){
+    var n=b.dur[i];                            // these are diabetic members
+    return _subCohort(b,n,{dur:_bandPick(i,5),a1c:[0,1.2,1.5,1.3,1.2],
+      condMul:{hypertension:[0.9,1.1,1.3,1.5,1.7][i],ckd:[0.6,1.0,1.5,2.0,2.4][i],ascvd:[0.6,1.0,1.4,1.9,2.3][i]},
+      diaShare:1});
+  });
+});
+/* Number of meds bands */
+MEDS_LABELS.forEach(function(lab,i){
+  _reg('MEDS'+i,lab,function(b){
+    var n=Math.round(b.n*MEDS_W[i]/100);
+    return _subCohort(b,n,{
+      condMul:{hypertension:[0.3,0.8,1.3,1.7,2.0][i],dyslipidemia:[0.4,0.8,1.2,1.5,1.7][i],
+        obesity:[0.5,0.85,1.15,1.4,1.6][i],ckd:[0.3,0.7,1.3,1.8,2.2][i]},
+      diaShare:[0.05,0.18,0.30,0.45,0.6][i]});
+  });
+});
+
+/* ===== Comorbidity combinations (cross-filter) =====
+   Each combo forces ONLY its named conditions to 100%; every other condition
+   is pushed to a low minimum (~9%) via condMin in the builder below. */
+var COMBOS=[
+  {key:'CB_DH',  label:'Diabetes + HT',                 force:['hypertension'], dia:1},
+  {key:'CB_DHF', label:'Diabetes + HT + Fatty Liver',   force:['hypertension','mafld'], dia:1},
+  {key:'CB_HF',  label:'HT + Fatty Liver',              force:['hypertension','mafld'], dia:0},
+  {key:'CB_DD',  label:'Diabetes + Dyslipidemia',       force:['dyslipidemia'], dia:1},
+  {key:'CB_DF',  label:'Diabetes + Fatty Liver',        force:['mafld'], dia:1, zero:['hypertension']}
+];
+/* size of each combo = intersection estimate from base prevalences */
+function _comboN(b,c){
+  var p=1, pn=b.n;
+  // diabetes
+  if(c.dia===1) p*=b.diabetic/b.n;
+  c.force.forEach(function(k){p*=b.cond[k]/b.n;});
+  // overlap is more than independent product; lift by 1.8x (clustering), clamp
+  var n=Math.round(pn*p*1.8);
+  return Math.max(60,Math.min(b.cond.multi,n));
+}
+COMBOS.forEach(function(c){
+  _reg(c.key,c.label,function(b){
+    var n=_comboN(b,c);
+    var diaShare = (c.dia===1)?1:(c.dia===0?0:(b.diabetic/b.n));
+    // all single conditions not named in this combo -> push to minimum (~9%)
+    var allConds=['obesity','hypertension','dyslipidemia','ascvd','mafld','ckd'];
+    var zero=c.zero||[];
+    var condMin=allConds.filter(function(k){return c.force.indexOf(k)<0 && zero.indexOf(k)<0;});
+    var opt={condForce:c.force.slice(),diaShare:diaShare,
+      condMin:condMin, minFrac:0.09, condZero:zero};
+    if(c.dia===1){/* diabetic -> shift a1c up */ opt.a1c=[0,1.3,1.6,1.4,1.2];}
+    else if(c.dia===0){/* non-diabetic cluster -> A1c below 6.5 */ opt.a1c=[1,0.15,0,0,0];}
+    return _subCohort(b,n,opt);
+  });
+});
+
+/* PCOS cross-filter — female-scoped sub-group (≈20% of women, 100% female).
+   PCOS clusters with insulin resistance, so obesity / dysglycaemia / MAFLD run
+   above base; cardiovascular-renal stay near base. */
+_reg('CB_PCOS','PCOS (women)',function(b){
+  var n=Math.round(b.female*0.20);
+  return _subCohort(b,n,{
+    femaleOnly:true,
+    a1c:[1,0.9,0.6,0.3,0.15],                 // more dysglycaemia, fewer severe
+    bmi:[0.7,1.0,1.4,1.3,1.1],                // skews heavier
+    condMul:{obesity:1.6,dyslipidemia:1.3,mafld:1.5,hypertension:1.1,ascvd:0.6,multi:1.3},
+    condMin:['ckd'], minFrac:0.03,            // renal risk minimal in PCOS cohort
+    diaShare:0.18});                          // higher diabetes risk than base
+});
+
+/* ===== Healthy / Optimal metabolic state cohort ===== */
+/* Joined healthy and still healthy. Optimal metabolic state: 30% -> 28%. */
+_reg('HEALTHY','Healthy — optimal metabolic state',function(b){
+  var n=Math.round(b.n*0.31);                  // 31% in optimal metabolic state (current)
+  return _subCohort(b,n,{
+    a1c:[1,0,0,0,0],                           // all in <6.5 (normal) band
+    bmi:[1.7,1.5,0,0,0],                       // normal / overweight only, no obese class
+    condMul:{obesity:0,hypertension:0,dyslipidemia:0,ascvd:0,mafld:0,ckd:0,multi:0},
+    diaShare:0});                              // no diabetics in an optimal cohort
+});
+
+(function(){
+  const sel=document.getElementById('cohortSelect');
+  if(!sel) return;
+  const filterSel=document.getElementById('filterSelect')||{value:'NONE',innerHTML:'',addEventListener:function(){}};
+  const resetBtn=document.getElementById('filterReset');
+  const comboBar=document.getElementById('comboBar');
+  const comboBtns=document.getElementById('comboBtns');
+  const opts=[['ALL','All companies (43,916 members)']]
+    .concat(COH.companies.map(c=>[c.id, c.id+'  ·  '+c.n.toLocaleString('en-IN')+' members']));
+  sel.innerHTML=opts.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+
+  // (sub-group filter dropdown removed; comorbidity buttons remain below)
+
+  // Build comorbidity combo buttons
+  comboBtns.innerHTML=COMBOS.map(c=>`<button type="button" class="combo-btn" data-combo="${c.key}">${c.label}</button>`).join('')
+    +`<button type="button" class="combo-btn" data-combo="CB_PCOS">PCOS (women)</button>`;
+
+  let state={company:'ALL',filter:'NONE'};
+
+  const fmt=n=>n.toLocaleString('en-IN');
+  const pc=(v,d)=>d? (v/d*100):0;
+  const pctTxt=(v,d)=>pc(v,d).toFixed(1)+'%';
+
+  function rows(data){
+    const n=data.n, dia=data.diabetic, cond=data.cond;
+    // group with sub-rows; denom drives % and minibar scaled to group max
+    function group(param,labels,vals,denom){
+      const max=Math.max(...vals,1);
+      let html='';
+      labels.forEach((lab,i)=>{
+        const v=vals[i], w=(v/max*100);
+        html+=`<tr class="${i===0?'grp':''}">
+          <td class="param">${i===0?param:''}</td>
+          <td class="sub barcell">${lab}<div class="minibar" style="width:${w.toFixed(0)}%;margin-top:5px"></div></td>
+          <td class="num">${fmt(v)}</td>
+          <td class="pct">${pctTxt(v,denom)}</td></tr>`;
+      });
+      return html;
+    }
+    function condRow(param,v){
+      return `<tr class="cond"><td class="param" colspan="2">${param}</td>
+        <td class="num">${fmt(v)}</td><td class="pct">${pctTxt(v,n)}</td></tr>`;
+    }
+    // condition with severity sub-bands; bands sum to the condition total.
+    function condGroup(param,total,labels,props,tip,denom,denomLabel){
+      const dn = denom||n;
+      const parts=_part(props.slice(),total);   // integer split summing to total
+      const max=Math.max(...parts,1);
+      const ic = tip? ` <span class="info" tabindex="0" aria-label="${tip.replace(/"/g,'&quot;')}"><span class="info-i">i</span><span class="info-tip">${tip}</span></span>` : '';
+      let html='';
+      labels.forEach((lab,i)=>{
+        const v=parts[i], w=(v/max*100);
+        html+=`<tr class="${i===0?'grp':''}">
+          <td class="param">${i===0?(param+ic):''}</td>
+          <td class="sub barcell">${lab}<div class="minibar" style="width:${w.toFixed(0)}%;margin-top:5px"></div></td>
+          <td class="num">${fmt(v)}</td>
+          <td class="pct">${pctTxt(v,dn)}${denomLabel?'<span style="font-size:9px;color:var(--muted)"> '+denomLabel+'</span>':''}</td></tr>`;
+      });
+      return html;
+    }
+    const head=`<thead><tr><th>Parameter</th><th>Subcategory</th><th class="num">No.</th><th class="num">%</th></tr></thead><tbody>`;
+    // left column: age, gender, duration, BMI
+    let L=head;
+    L+=group('Age, years',['&lt;30 years','30 to 40','40 to 50','50 to 60','&gt; 60'],data.age,n);
+    L+=`<tr class="grp"><td class="param">Gender</td><td class="sub barcell">Male<div class="minibar" style="width:${(data.male/n*100).toFixed(0)}%;margin-top:5px"></div></td><td class="num">${fmt(data.male)}</td><td class="pct">${pctTxt(data.male,n)}</td></tr>`;
+    L+=`<tr><td class="param"></td><td class="sub barcell">Female<div class="minibar" style="width:${(data.female/n*100).toFixed(0)}%;margin-top:5px"></div></td><td class="num">${fmt(data.female)}</td><td class="pct">${pctTxt(data.female,n)}</td></tr>`;
+    L+=group('Duration of Diabetes, years',['&lt;5 years','5 to 10 years','10 to 15 years','15 to 20 years','&gt; 20 years'],data.dur,dia);
+    L+=group('Obesity, BMI',['&lt;25','25 to 30','30 to 35','35 to 40','&gt;40'],data.bmi,n);
+    L+=group('HbA1c, %',['&lt; 6.5','6.5 to 7','7 to 8','8 to 9','&gt; 9'],data.a1c,n);
+    L+='</tbody>';
+
+    let R=head;
+    // Pre-existing conditions with severity sub-bands (each sums to its total); ⓘ shows clinical band definitions
+    R+=condGroup('Hypertension',cond.hypertension,
+        ['Stage 1 (130–139/85–89)','Stage 2 (140–159/90–99)','Crisis (≥160/100)'],[0.52,0.36,0.12],
+        'Stage 1: 130–139 / 85–89 mmHg · Stage 2: 140–159 / 90–99 mmHg · Crisis: ≥160 / 100 mmHg');
+    R+=condGroup('Dyslipidemia',cond.dyslipidemia,
+        ['Borderline','High','Very High'],[0.45,0.38,0.17],
+        'Borderline: LDL 100–129 (non-HDL 130–159) · High: LDL 130–189 (non-HDL 160–219) · Very High: LDL ≥190 (non-HDL ≥220)');
+    R+=condGroup('ASCVD',cond.ascvd,
+        ['Established CVD','High 10-yr risk','Borderline risk'],[0.40,0.42,0.18],
+        'Established CVD: prior MI / stroke / revascularisation · High 10-yr risk: ASCVD risk ≥20% · Borderline risk: ASCVD risk 5–20%');
+    R+=condGroup('MAFLD',cond.mafld,
+        ['HSI &gt; 36','HSI 30 to 36','HSI &lt; 30'],[0.38,0.38,0.24],
+        'HSI > 36: high fatty-liver likelihood · HSI 30–36: indeterminate · HSI < 30: fatty liver unlikely');
+    R+=condGroup('CKD',cond.ckd,
+        ['Stage G2','Stage G3','Stage G4–G5'],[0.58,0.32,0.10],
+        'Stage G2: eGFR 60–89 · Stage G3: eGFR 30–59 · Stage G4–G5: eGFR <30 (incl. kidney failure)');
+    // PCOS — female-scoped (% of female members), phenotype bands sum to PCOS total
+    const pcosN=Math.round(data.female*0.20);
+    R+=condGroup('PCOS',pcosN,
+        ['Ovulatory','Hyperandrogenic','Classic'],[0.30,0.40,0.30],
+        'Among female members only. Ovulatory: regular cycles + hyperandrogenism/PCO morphology · Hyperandrogenic: irregular cycles + hyperandrogenism · Classic: irregular cycles + hyperandrogenism + polycystic ovaries',
+        data.female,'of women');
+    // Population partition: healthy + exactly-1 + multi = n  (reconciled)
+    const part=popPartition(data);
+    R+=`<tr class="grp"><td class="param" colspan="4" style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding-top:12px">Population by condition load (sums to ${fmt(n)})</td></tr>`;
+    R+=`<tr class="cond"><td class="param" colspan="2" style="color:var(--green)">Healthy — no flagged condition</td><td class="num">${fmt(part.healthy)}</td><td class="pct">${pctTxt(part.healthy,n)}</td></tr>`;
+    R+=`<tr class="cond"><td class="param" colspan="2">Single condition</td><td class="num">${fmt(part.one)}</td><td class="pct">${pctTxt(part.one,n)}</td></tr>`;
+    R+=`<tr class="cond"><td class="param" colspan="2">Multiple comorbidities (≥ 2)</td><td class="num">${fmt(part.multi)}</td><td class="pct">${pctTxt(part.multi,n)}</td></tr>`;
+    R+='</tbody>';
+    return `<table class="demo-table">${L}</table><table class="demo-table">${R}</table>`;
+  }
+
+  function baseCohort(id){
+    return id==='ALL'? COH.agg : COH.companies.find(c=>c.id===id);
+  }
+
+  /* Reconciled population partition by condition load.
+     healthy (no condition) + single (exactly 1) + multi (>=2) = n.
+     Data-driven so it stays correct under any sub-group filter:
+     - multi = cond.multi (>=2 conditions)
+     - union (>=1 condition) is at least the largest single condition and at
+       least multi; healthy = n - union; single = union - multi.
+     When the cohort carries no conditions at all (e.g. the optimal/healthy
+     cohort) this yields 100% healthy, 0 single, 0 multi. */
+  function popPartition(d){
+    const n=d.n;
+    const c=d.cond;
+    const singles=[c.obesity,c.hypertension,c.dyslipidemia,c.ascvd,c.mafld,c.ckd]
+      .map(x=>x||0);
+    const maxSingle=Math.max(0,...singles);
+    const sumSingles=singles.reduce((a,b)=>a+b,0);
+    let multi=Math.min(n, c.multi||0);
+    // No conditions present -> everyone is healthy.
+    if(maxSingle===0 && multi===0){
+      return {healthy:n, one:0, multi:0};
+    }
+    // union of "has >=1 condition": at least the biggest single and at least
+    // multi. For typical cohorts we estimate ~70% have >=1 condition (30%
+    // healthy), but never fewer than the largest single condition implies.
+    let unionFloor=Math.max(maxSingle, multi);
+    let unionEst=Math.round(n*0.69);
+    let union=Math.max(unionFloor, Math.min(unionEst, n));
+    let healthy=Math.max(0, n-union);
+    let one=union-multi;
+    if(one<0){ one=0; healthy=Math.max(0,n-multi); }
+    return {healthy:healthy, one:one, multi:multi};
+  }
+
+  function render(){
+    const id=state.company, fkey=state.filter;
+    const base=baseCohort(id);
+    let data, vid=id, tagExtra='', filtered=(fkey&&fkey!=='NONE'&&FILTERS[fkey]);
+    if(filtered){
+      data=FILTERS[fkey].build(base);
+      tagExtra=' · '+FILTERS[fkey].label;
+    } else {
+      data=base;
+    }
+    const cs = CASES[id];
+    const V = computeView(data, vid);
+    applyText(V); buildCharts(V); renderGuarantees(V); renderMcards(V);
+    document.getElementById('cohortTotal').textContent=fmt(data.n);
+    document.getElementById('cohortTag').textContent =
+      (id==='ALL'?'All companies':id)+(filtered?tagExtra:'');
+
+    // Healthy / optimal metabolic state metric (joined vs still healthy)
+    renderHealthy(base, data, filtered, fkey);
+
+    document.getElementById('demoTable').innerHTML=rows(data);
+    document.getElementById('demoNote').innerHTML='';
+    document.getElementById('caseTitle').textContent = id==='ALL'?'All companies':id;
+    document.getElementById('caseProfile').textContent = '';
+    renderEngagement(id);
+    document.getElementById('caseOutcomes').innerHTML=cs.out.map(o=>
+      `<div class="out"><div class="n">${o[0]}</div><div class="t">${o[1]}</div></div>`).join('');
+
+    // sync combo button active state
+    [...comboBtns.querySelectorAll('.combo-btn')].forEach(btn=>{
+      btn.classList.toggle('active', btn.getAttribute('data-combo')===fkey);
+    });
+  }
+
+  /* Healthy cohort tile: how many joined healthy + still healthy now.
+     Optimal metabolic state 30% (start) -> 28% (now). */
+  // Engagement & adherence by cohort (varies per company; ALL ~ programme average)
+  const ENG={'ALL':[82,77],'C-1042':[84,79],'C-2087':[80,74],'C-3361':[83,78],
+    'C-4189':[79,73],'C-5530':[82,77],'C-6724':[78,72],'C-7918':[85,80]};
+  function renderEngagement(id){
+    const host=document.getElementById('engPanel'); if(!host) return;
+    const e=ENG[id]||ENG.ALL, eng=e[0], adh=e[1];
+    function metric(label,val){
+      return `<div style="flex:1">
+        <div style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700">${label}</div>
+        <div style="font-size:30px;font-weight:800;color:var(--teal-d);line-height:1.1;margin:3px 0 6px">${val}%</div>
+        <div class="gbar" style="background:#e7eeec"><div class="gfill" style="width:${val}%"></div></div>
+      </div>`;
+    }
+    host.innerHTML=`<div style="display:flex;gap:24px;margin:6px 0 4px">
+      ${metric('Engagement',eng)}
+      ${metric('Adherence',adh)}
+    </div>`;
+  }
+
+  function renderHealthy(base, data, filtered, fkey){
+    const host=document.getElementById('healthyMetric');
+    if(!host) return;
+    const startPct=33, nowPct=31;
+    const joined=Math.round(base.n*startPct/100);
+    const still =Math.round(base.n*nowPct/100);
+    const isHealthyView = fkey==='HEALTHY';
+    host.innerHTML=
+      `<div class="ach a-green" style="text-align:left">
+         <div class="cap" style="font-size:13.5px">Healthy — Optimal Metabolic State</div>
+         <div class="row" style="display:flex;gap:26px;align-items:flex-end;margin-top:10px">
+           <div><div class="t" style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700">Joined healthy</div>
+             <div class="big" style="font-size:30px">${startPct}%</div>
+             <div class="bench" style="margin-top:0">${fmt(joined)} members</div></div>
+           <div class="arrow" style="font-size:18px;color:var(--teal);padding-bottom:18px">→</div>
+           <div><div class="t" style="font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);font-weight:700">Still healthy now</div>
+             <div class="big" style="font-size:30px;color:var(--teal)">${nowPct}%</div>
+             <div class="bench" style="margin-top:0">${fmt(still)} members</div></div>
+         </div>
+         <div class="desc" style="margin-top:10px">${startPct}% of this cohort joined in an optimal metabolic state; ${nowPct}% remain optimal at latest screening — a small natural drift of 2 points, well below typical population decline.${isHealthyView?' <b>Now isolated in the dashboard above.</b>':''}</div>
+       </div>`;
+  }
+
+  // ---- wiring ----
+  sel.addEventListener('change',e=>{state.company=e.target.value; render();});
+  resetBtn.addEventListener('click',()=>{
+    state.filter='NONE'; filterSel.value='NONE'; render();
+  });
+  comboBtns.addEventListener('click',e=>{
+    const btn=e.target.closest('.combo-btn'); if(!btn) return;
+    const key=btn.getAttribute('data-combo');
+    state.filter = (state.filter===key)? 'NONE' : key;     // toggle
+    filterSel.value = (state.filter==='NONE')? 'NONE' : state.filter;
+    render();
+  });
+
+  render();
+})();
+
+</script>
+</body>
+</html>
